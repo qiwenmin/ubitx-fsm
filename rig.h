@@ -194,6 +194,7 @@ public:
   };
 
   void setSplit(uint8_t val) {
+    selectVfo();
     _working_ch->split = val;
     refreshDisplay();
   };
