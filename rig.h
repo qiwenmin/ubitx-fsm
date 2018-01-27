@@ -276,6 +276,7 @@ public:
   };
 
   void clearMemory() {
+    selectVfo();
     memset(&_mem[_ch_idx], 0, sizeof(Channel));
     refreshDisplay();
   };
