@@ -16,15 +16,17 @@
 #include <fsmos.h>
 #include "objs.h"
 #include "cat_task.h"
+#include "display_task.h"
 #include "rig.h"
 #include "led_def.h"
 
-FsmOs fsmOs(1);
+FsmOs fsmOs(2);
 
 void setup() {
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, LED_OFF_VALUE);
 
+  fsmOs.addTask(&displayTask);
   fsmOs.addTask(&catTask);
 
   fsmOs.init();

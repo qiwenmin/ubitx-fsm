@@ -17,6 +17,9 @@
 #define __RIG_H__
 
 #include <stdint.h>
+#include "display_task.h"
+#include "objs.h"
+
 #include "led_def.h"
 
 #define MIN_FREQ 500000
@@ -27,13 +30,13 @@
 #define MODE_CW 0x03
 #define MODE_CWR 0x07
 
+#define VFO_A 0
+#define VFO_B 1
+
 #define FILTER_NORMAL 0x02
 
 #define OFF 0x00
 #define ON 0x01
-
-#define VFO_A 0
-#define VFO_B 1
 
 #define MEM_SIZE 20 // provides channel#00 to channel#19
 
@@ -82,6 +85,54 @@ public:
     _mem[0].vfos[VFO_A].mode = MODE_USB;
   };
 
+  void refreshDisplay() {
+    char _buf[17];
+
+    // freq
+    uint32_t freq = getFreq();
+    sprintf(_buf, "%2lu.%05lu", freq / 1000000, (freq % 1000000) / 10);
+    displayTask.print(4, 1, _buf);
+
+    // mode
+    uint8_t mode = getMode();
+    switch (mode) {
+    case MODE_CW:
+      displayTask.print(13, 1, " CW");
+      break;
+    case MODE_CWR:
+      displayTask.print(13, 1, "CWR");
+      break;
+    case MODE_LSB:
+      displayTask.print(13, 1, "LSB");
+      break;
+    case MODE_USB:
+      displayTask.print(13, 1, "USB");
+      break;
+    }
+
+    // SPLIT?
+    displayTask.print(6, 0, getSplit() == ON ? "SPL" : "   ");
+
+    // Lock?
+    displayTask.print(10, 0, getDialLock() == ON ? "LCK" : "   ");
+
+    // VFO? MEM?
+    displayTask.print(0, 0, isVfo() ? "VFO-" : "MEM-");
+
+    // VFO A? B?
+    displayTask.print(4, 0, getVfo() == VFO_A ? "A" : "B");
+
+    // Mem OK?
+    displayTask.print(0, 1, isMemOk() ? "M" : "-");
+
+    // Ch#
+    sprintf(_buf, "%02d", getMemCh());
+    displayTask.print(1, 1, _buf);
+
+    // TX?
+    displayTask.print(14, 0, getTx() == ON ? "TX" : "  ");
+  };
+
   void setFreq(uint32_t freq) {
     selectVfo();
     if (freq < MIN_FREQ)
@@ -90,6 +141,8 @@ public:
       _working_ch->vfos[_working_ch->active_vfo].freq = MAX_FREQ;
     else
       _working_ch->vfos[_working_ch->active_vfo].freq = freq;
+
+    refreshDisplay();
   };
 
   uint32_t getFreq() { return _working_ch->vfos[_working_ch->active_vfo].freq; };
@@ -98,6 +151,9 @@ public:
     if (mode == MODE_LSB || mode == MODE_USB || mode == MODE_CW || mode == MODE_CWR) {
       selectVfo();
       _working_ch->vfos[_working_ch->active_vfo].mode = mode;
+
+      refreshDisplay();
+
       return true;
     } else {
       return false;
@@ -111,6 +167,7 @@ public:
       _tx = tx;
 
       digitalWrite(LED_PIN, tx == ON ? LED_ON_VALUE : LED_OFF_VALUE);
+      refreshDisplay();
     }
   };
 
@@ -118,24 +175,47 @@ public:
 
   uint8_t getVfo() { return _working_ch->active_vfo; };
 
-  void exchangeVfo() { _working_ch->active_vfo = _working_ch->active_vfo == VFO_A ? VFO_B : VFO_A; };
+  void exchangeVfo() {
+    _working_ch->active_vfo = _working_ch->active_vfo == VFO_A ? VFO_B : VFO_A;
+
+    refreshDisplay();
+  };
 
   void equalizeVfo() {
     _working_ch->vfos[0].freq = _working_ch->vfos[1].freq = getFreq();
     _working_ch->vfos[0].mode = _working_ch->vfos[1].mode = getMode();
+
+    refreshDisplay();
   };
 
-  void setVfo(uint8_t idx) { _working_ch->active_vfo = idx; };
+  void setVfo(uint8_t idx) {
+    _working_ch->active_vfo = idx;
+    refreshDisplay();
+  };
 
-  void setSplit(uint8_t val) { _working_ch->split = val; };
+  void setSplit(uint8_t val) {
+    _working_ch->split = val;
+    refreshDisplay();
+  };
 
-  void setDialLock(uint8_t val) { _dial_lock = val; };
+  uint8_t getSplit() { return _working_ch->split; };
 
-  void selectVfo() { _working_ch = &_vfo_ch; };
+  void setDialLock(uint8_t val) {
+    _dial_lock = val;
+    refreshDisplay();
+  };
+
+  uint8_t getDialLock() { return _dial_lock; };
+
+  void selectVfo() {
+    _working_ch = &_vfo_ch;
+    refreshDisplay();
+  };
 
   void selectMem() {
     if (isMemOk()) {
       _working_ch = &_mem[_ch_idx];
+      refreshDisplay();
     }
   };
 
@@ -144,24 +224,30 @@ public:
       return false;
     } else {
       _ch_idx = ch;
+      refreshDisplay();
       return true;
     }
   };
 
+  uint8_t getMemCh() { return _ch_idx; };
+
   void writeMemory() {
     if (isVfo()) {
       copy_channel(&_mem[_ch_idx], _working_ch);
+      refreshDisplay();
     }
   };
 
   void memoryToVfo() {
     if (isMemOk()) {
       copy_channel(&_vfo_ch, &_mem[_ch_idx]);
+      refreshDisplay();
     }
   };
 
   void clearMemory() {
     memset(&_mem[_ch_idx], 0, sizeof(Channel));
+    refreshDisplay();
   };
 
   bool isVfo() { return _working_ch == (&_vfo_ch); };

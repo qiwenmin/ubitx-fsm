@@ -15,7 +15,10 @@
 
 #include "objs.h"
 #include "cat_task.h"
+#include "display_task.h"
 #include "rig.h"
 
 CatTask catTask;
+DisplayTask displayTask;
 Rig rig;
+

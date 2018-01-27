@@ -17,9 +17,11 @@
 #define __OBJS_H__
 
 class CatTask;
+class DisplayTask;
 class Rig;
 
 extern CatTask catTask;
+extern DisplayTask displayTask;
 extern Rig rig;
 
 #endif // __OBJS_H__
