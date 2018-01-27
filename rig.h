@@ -145,7 +145,18 @@ public:
     refreshDisplay();
   };
 
-  uint32_t getFreq() { return _working_ch->vfos[_working_ch->active_vfo].freq; };
+  uint32_t getRxFreq() { return _working_ch->vfos[_working_ch->active_vfo].freq; };
+
+  uint32_t getTxFreq() {
+    uint8_t v = _working_ch->active_vfo;
+    if (getSplit() == ON) {
+      v = (v == VFO_A ? VFO_B : VFO_A);
+    }
+
+    return _working_ch->vfos[v].freq;
+  };
+
+  uint32_t getFreq() { return getTx() == ON ? getTxFreq() : getRxFreq(); };
 
   bool setMode(uint8_t mode) {
     if (mode == MODE_LSB || mode == MODE_USB || mode == MODE_CW || mode == MODE_CWR) {
@@ -160,7 +171,18 @@ public:
     }
   };
 
-  uint8_t getMode() { return _working_ch->vfos[_working_ch->active_vfo].mode; };
+  uint8_t getRxMode() { return _working_ch->vfos[_working_ch->active_vfo].mode; };
+
+  uint8_t getTxMode() {
+    uint8_t v = _working_ch->active_vfo;
+    if (getSplit() == ON) {
+      v = (v == VFO_A ? VFO_B : VFO_A);
+    }
+
+    return _working_ch->vfos[v].mode;
+  };
+
+  uint8_t getMode() { return getTx() == ON ? getTxMode() : getRxMode(); };
 
   void setTx(uint8_t tx) {
     if (tx == ON || tx == OFF) {
@@ -173,7 +195,14 @@ public:
 
   uint8_t getTx() { return _tx; };
 
-  uint8_t getVfo() { return _working_ch->active_vfo; };
+  uint8_t getVfo() {
+    uint8_t v = _working_ch->active_vfo;
+    if (getSplit() == ON && getTx() == ON) {
+      v = (v == VFO_A ? VFO_B : VFO_A);
+    }
+
+    return v;
+  };
 
   void exchangeVfo() {
     _working_ch->active_vfo = _working_ch->active_vfo == VFO_A ? VFO_B : VFO_A;
@@ -182,8 +211,8 @@ public:
   };
 
   void equalizeVfo() {
-    _working_ch->vfos[0].freq = _working_ch->vfos[1].freq = getFreq();
-    _working_ch->vfos[0].mode = _working_ch->vfos[1].mode = getMode();
+    _working_ch->vfos[0].freq = _working_ch->vfos[1].freq = getRxFreq();
+    _working_ch->vfos[0].mode = _working_ch->vfos[1].mode = getRxMode();
 
     refreshDisplay();
   };
