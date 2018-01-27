@@ -4,7 +4,7 @@
 
 #ifdef ARDUINO_GENERIC_STM32F103C
 
-#include <Adafruit_SSD1306_STM32.h>
+#include "Adafruit_SSD1306_STM32.h"
 static Adafruit_SSD1306 _oled(4);
 
 #endif // ARDUINO_GENERIC_STM32F103C
