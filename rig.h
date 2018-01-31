@@ -90,7 +90,7 @@ public:
 
     // freq
     uint32_t freq = getFreq();
-    sprintf(_buf, "%2lu.%05lu", freq / 1000000, (freq % 1000000) / 10);
+    sprintf(_buf, "%2" PRIu32 ".%05" PRIu32, freq / 1000000, (freq % 1000000) / 10);
     displayTask.print(4, 1, _buf);
 
     // mode
