@@ -4,8 +4,13 @@
 
 #ifdef ARDUINO_GENERIC_STM32F103C
 
-#include "Adafruit_SSD1306_STM32.h"
-static Adafruit_SSD1306 _oled(4);
+#include <U8g2lib.h>
+
+#ifdef U8X8_HAVE_HW_I2C
+#include <Wire.h>
+#endif
+
+U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
 
 #endif // ARDUINO_GENERIC_STM32F103C
 
@@ -16,14 +21,12 @@ static int counter = 0;
 void DisplayTask::init() {
 
 #ifdef ARDUINO_GENERIC_STM32F103C
-  _oled.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+  u8g2.begin();
+  u8g2.enableUTF8Print();
 
-  _oled.clearDisplay();
-  _oled.display();
-
-  _oled.setTextSize(1);
-  _oled.setTextColor(WHITE);  
-  _oled.setTextSize(1);
+  u8g2.clearBuffer();
+  u8g2.setFont(u8g2_font_6x12_tf);
+  u8g2.setDrawColor(1); // WHITE
 
 #endif // ARDUINO_GENERIC_STM32F103C
 
@@ -47,11 +50,12 @@ bool DisplayTask::on_state_change(int8_t new_state, int8_t) {
 
     bool need_update = false;
 
-    _oled.writeFillRect(93, 49, 20, 10, WHITE);
-    _oled.setCursor(94, 50);
-    _oled.setTextColor(BLACK);
-    _oled.print(cntMsg);
-    _oled.setTextColor(WHITE);
+    u8g2.setDrawColor(1); // WHITE
+    u8g2.drawBox(93, 49, 20, 10);
+    u8g2.setCursor(94, 50 + 8);
+    u8g2.setDrawColor(0); // BLACK
+    u8g2.print(cntMsg);
+    u8g2.setDrawColor(1); // WHITE
     need_update = true;
 
     for (uint8_t row = 0; row < 2; row ++) {
@@ -59,9 +63,11 @@ bool DisplayTask::on_state_change(int8_t new_state, int8_t) {
         if (_buf[row][col] != _printed[row][col]) {
           int16_t x = 16 + 6 * col;
           int16_t y = 20 + row * 10;
-          _oled.writeFillRect(x, y, 6, 8, BLACK);
-          _oled.setCursor(x, y);
-          _oled.print(_buf[row][col]);
+          u8g2.setDrawColor(0); // BLACK
+          u8g2.drawBox(x, y, 6, 10);
+          u8g2.setCursor(x, y + 8);
+          u8g2.setDrawColor(1); // WHITE
+          u8g2.print(_buf[row][col]);
 
           _printed[row][col] = _buf[row][col];
           need_update = true;
@@ -70,7 +76,7 @@ bool DisplayTask::on_state_change(int8_t new_state, int8_t) {
     }
 
     if (need_update) {
-      _oled.display();
+      u8g2.sendBuffer();
     }
 
 #endif // ARDUINO_GENERIC_STM32F103C

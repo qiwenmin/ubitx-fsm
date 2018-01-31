@@ -123,7 +123,7 @@ public:
     displayTask.print(4, 0, getVfo() == VFO_A ? "A" : "B");
 
     // Mem OK?
-    displayTask.print(0, 1, isMemOk() ? "M" : "\x10");
+    displayTask.print(0, 1, isMemOk() ? "M" : "-");
 
     // Ch#
     sprintf(_buf, "%02d", getMemCh());
