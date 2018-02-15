@@ -1,3 +1,18 @@
+/*
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include "ui_tasks.h"
 
 #include "version.h"
@@ -200,6 +215,7 @@ bool UiTask::on_state_change(int8_t new_state, int8_t old_state) {
 void UiTask::in_state(int8_t state) {
   bool fbtn_change = false;
   uint8_t fbtn_from_state = _last_fbutton_state;
+  int8_t ch;
 
   if (_last_fbutton_state == FBTN_UP) {
     // up to down?
@@ -246,45 +262,73 @@ void UiTask::in_state(int8_t state) {
 
             update_display(this);
           } else {
-            rig.setMode(_menu_idx_to_mode(_submenu_idx));
+            rig.setMode(_menu_idx_to_mode(_submenu_idx), false);
             gotoState(MENU_NONE);
           }
           break;
         case MM_EXCHANGE_VFO:
-          rig.exchangeVfo();
+          rig.exchangeVfo(false);
           gotoState(MENU_NONE);
           break;
         case MM_EQUALIZE_VFO:
-          rig.equalizeVfo();
+          rig.equalizeVfo(false);
           gotoState(MENU_NONE);
           break;
         case MM_SPLIT:
-          rig.setSplit(rig.getSplit() == ON ? OFF : ON);
+          rig.setSplit(rig.getSplit() == ON ? OFF : ON, false);
           gotoState(MENU_NONE);
           break;
         case MM_SELECT_VFO_MEM:
-          // TODO
           if (rig.isVfo()) {
-            rig.selectMem();
+            if (!rig.isMemOk()) {
+              ch = rig.getNextMemOkCh(rig.getMemCh());
+              if (ch != -1) {
+                rig.selectMemCh(ch, false);
+                rig.selectMem(false);
+              }
+            }
+            rig.selectMem(false);
           } else {
-            rig.selectVfo();
+            rig.selectVfo(false);
           }
           gotoState(MENU_NONE);
           break;
         case MM_MEM_TO_VFO:
-          // TODO
-          rig.memoryToVfo();
-          gotoState(MENU_NONE);
+        case MM_CLEAR_MEM:
+          if (_submenu_idx == -1) {
+            _submenu_count = MEM_SIZE;
+            if (rig.isMemOk()) {
+              _submenu_idx = rig.getMemCh();
+            } else {
+              _submenu_idx = rig.getNextMemOkCh(rig.getMemCh());
+            }
+
+            update_display(this);
+          } else {
+            if (_menu_idx == MM_MEM_TO_VFO) {
+              rig.selectMemCh(_submenu_idx, false);
+              rig.memoryToVfo(_submenu_idx, false);
+              rig.selectVfo(false);
+            } else if (_menu_idx == MM_CLEAR_MEM) {
+              rig.selectMemCh(_submenu_idx, false);
+              rig.clearMemory(false);
+            }
+            gotoState(MENU_NONE);
+          }
           break;
         case MM_WRITE_MEM:
-          // TODO
-          rig.writeMemory();
-          gotoState(MENU_NONE);
-          break;
-        case MM_CLEAR_MEM:
-          // TODO
-          rig.clearMemory();
-          gotoState(MENU_NONE);
+          if (_submenu_idx == -1) {
+            if (rig.isVfo()) {
+              _submenu_count = MEM_SIZE;
+              _submenu_idx = rig.getMemCh();
+
+              update_display(this);
+            }
+          } else {
+            rig.selectMemCh(_submenu_idx, false);
+            rig.writeMemory(_submenu_idx, false);
+            gotoState(MENU_NONE);
+          }
           break;
         case MM_EXIT:
           gotoState(MENU_NONE);
@@ -293,7 +337,7 @@ void UiTask::in_state(int8_t state) {
           break;
         }
       } else if (_current_state == MENU_NONE) {
-        if (fbtn_from_state != FBTN_DOWN_LONG_LONG) {
+        if (fbtn_from_state == FBTN_DOWN) {
           gotoState(MENU_MAIN);
         }
       } else if (_current_state == MENU_FREQ_ADJ_BASE) {
@@ -304,6 +348,8 @@ void UiTask::in_state(int8_t state) {
     } else if (_last_fbutton_state == FBTN_DOWN_LONG) {
       if (_current_state == MENU_NONE && rig.isVfo()) {
         gotoState(MENU_FREQ_ADJ_BASE);
+      } else if (_current_state == MENU_MAIN) {
+        gotoState(MENU_NONE);
       }
     } else if (_last_fbutton_state == FBTN_DOWN_LONG_LONG) {
       rig.setDialLock(rig.getDialLock() == ON ? OFF : ON);
@@ -319,6 +365,7 @@ void UiTask::in_state(int8_t state) {
   }
 
   bool need_update = false;
+  int8_t d_idx = 0;
 
   switch (state) {
   case MENU_NONE:
@@ -328,8 +375,29 @@ void UiTask::in_state(int8_t state) {
         if (times < 3) times = 1;
         else times -= 2;
 
-        rig.setFreq(rig.getFreq() + enc_val * times * _freq_adj_base);
+        rig.setFreq(rig.getFreq() + enc_val * times * _freq_adj_base, false);
         update_display(this);
+      } else {
+        if (enc_val > 1) {
+          int8_t ch = rig.getNextMemOkCh(rig.getMemCh());
+          if (ch != -1) {
+            rig.selectMemCh(ch, false);
+            rig.selectMem(false);
+            need_update = true;
+          }
+        } else if (enc_val < -1) {
+          int8_t ch = rig.getPrevMemOkCh(rig.getMemCh());
+          if (ch != -1) {
+            rig.selectMemCh(ch, false);
+            rig.selectMem(false);
+            need_update = true;
+          }
+        }
+
+        if (need_update) {
+          update_display(this);
+          delay(400, MENU_NONE);
+        }
       }
     }
     break;
@@ -337,24 +405,28 @@ void UiTask::in_state(int8_t state) {
   case MENU_MAIN:
     if (enc_val != 0) {
       if (enc_val > 1) {
-        if (_submenu_idx == -1) {
-          _menu_idx ++;
-          if (_menu_idx > 8) _menu_idx = 8;
-          else need_update = true;
-        } else {
-          _submenu_idx ++;
-          if (_submenu_idx == _submenu_count) _submenu_idx = 0;
-          need_update = true;
-        }
+        d_idx = 1;
       } else if (enc_val < -1) {
+        d_idx = -1;
+      }
+
+      if (d_idx != 0) {
         if (_submenu_idx == -1) {
-          _menu_idx --;
-          if (_menu_idx < 0) _menu_idx = 0;
+          _menu_idx += d_idx;
+          if (_menu_idx > 8) _menu_idx = 8;
+          else if (_menu_idx < 0) _menu_idx = 0;
           else need_update = true;
         } else {
-          _submenu_idx --;
-          if (_submenu_idx < 0) _submenu_idx = _submenu_count - 1;
-          need_update = true;
+          if (_menu_idx == MM_MEM_TO_VFO || _menu_idx == MM_CLEAR_MEM) {
+            if (d_idx == 1) _submenu_idx = rig.getNextMemOkCh(_submenu_idx);
+            else if (d_idx == -1) _submenu_idx = rig.getPrevMemOkCh(_submenu_idx);
+            need_update = true;
+          } else {
+            _submenu_idx += d_idx;
+            if (_submenu_idx == _submenu_count) _submenu_idx = 0;
+            else if (_submenu_idx == -1) _submenu_idx = _submenu_count - 1;
+            need_update = true;
+          }
         }
       }
 
@@ -444,6 +516,7 @@ void UiTask::update_rig_display() {
 }
 
 void UiTask::update_menu_display() {
+  char _buf[17];
   uint8_t mode = rig.getMode();
   if (_submenu_idx != -1) mode = _menu_idx_to_mode(_submenu_idx);
 
@@ -464,20 +537,32 @@ void UiTask::update_menu_display() {
     displayTask.print0("2.A=B");
     break;
   case MM_SPLIT:
-    displayTask.print0("3.Split: ");
-    displayTask.print(9, 0, rig.getSplit() == ON ? "Y" : "N");
+    displayTask.print0("3.Split ");
+    displayTask.print(8, 0, rig.getSplit() == ON ? "Off" : "On");
     break;
   case MM_SELECT_VFO_MEM:
     displayTask.print0("4.V/M");
     break;
   case MM_MEM_TO_VFO:
     displayTask.print0("5.M\x7eV");
+    if (_submenu_idx != -1) {
+      sprintf(_buf, rig.isMemOk(_submenu_idx) ? ":\x7fM%02d\x7e" : ":\x7f?%02d\x7e", _submenu_idx);
+      displayTask.print(5, 0, _buf);
+    }
     break;
   case MM_WRITE_MEM:
     displayTask.print0("6.MW");
+    if (_submenu_idx != -1) {
+      sprintf(_buf, rig.isMemOk(_submenu_idx) ? ":\x7fM%02d\x7e" : ":\x7f?%02d\x7e", _submenu_idx);
+      displayTask.print(4, 0, _buf);
+    }
     break;
   case MM_CLEAR_MEM:
     displayTask.print0("7.MC");
+    if (_submenu_idx != -1) {
+      sprintf(_buf, rig.isMemOk(_submenu_idx) ? ":\x7fM%02d\x7e" : ":\x7f?%02d\x7e", _submenu_idx);
+      displayTask.print(4, 0, _buf);
+    }
     break;
   case MM_EXIT:
     displayTask.print0("8.Exit Menu");
