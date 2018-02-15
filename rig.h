@@ -100,7 +100,7 @@ public:
     else if (freq > MAX_FREQ)
       _working_ch->vfos[_working_ch->active_vfo].freq = MAX_FREQ;
     else
-      _working_ch->vfos[_working_ch->active_vfo].freq = freq;
+      _working_ch->vfos[_working_ch->active_vfo].freq = (freq / 10) * 10;
 
     rigChanged();
   };
