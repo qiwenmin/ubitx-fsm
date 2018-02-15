@@ -41,7 +41,7 @@
 #define MEM_SIZE 20 // provides channel#00 to channel#19
 
 typedef struct {
-  uint32_t freq;
+  int32_t freq;
   uint8_t mode;
 } VFO;
 
@@ -89,7 +89,7 @@ public:
     uiTask.update_display(this);
   };
 
-  void setFreq(uint32_t freq) {
+  void setFreq(int32_t freq) {
     selectVfo();
     if (freq < MIN_FREQ)
       _working_ch->vfos[_working_ch->active_vfo].freq = MIN_FREQ;
@@ -101,9 +101,9 @@ public:
     rigChanged();
   };
 
-  uint32_t getRxFreq() { return _working_ch->vfos[_working_ch->active_vfo].freq; };
+  int32_t getRxFreq() { return _working_ch->vfos[_working_ch->active_vfo].freq; };
 
-  uint32_t getTxFreq() {
+  int32_t getTxFreq() {
     uint8_t v = _working_ch->active_vfo;
     if (getSplit() == ON) {
       v = (v == VFO_A ? VFO_B : VFO_A);
@@ -112,7 +112,7 @@ public:
     return _working_ch->vfos[v].freq;
   };
 
-  uint32_t getFreq() { return getTx() == ON ? getTxFreq() : getRxFreq(); };
+  int32_t getFreq() { return getTx() == ON ? getTxFreq() : getRxFreq(); };
 
   bool setMode(uint8_t mode) {
     if (mode == MODE_LSB || mode == MODE_USB || mode == MODE_CW || mode == MODE_CWR) {

@@ -53,8 +53,11 @@ private:
 
   int8_t _menu_idx, _submenu_idx;
 
+  int32_t _freq_adj_base;
+
   void update_rig_display();
   void update_menu_display();
+  void update_freq_adj_base();
 
   void _print_rig_mode(uint8_t mode, uint8_t col, uint8_t row);
 };

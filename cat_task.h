@@ -503,7 +503,7 @@ private:
     }
   };
 
-  void freq2bcd(uint32_t freq, byte *bcd) {
+  void freq2bcd(int32_t freq, byte *bcd) {
     uint8_t lo, hi;
     for (int8_t i = 0; i < 5; i ++) {
       lo = freq % 10;
@@ -515,8 +515,8 @@ private:
     }
   };
 
-  uint32_t bcd2freq(const byte *bcd) {
-    uint32_t ret_val = 0;
+  int32_t bcd2freq(const byte *bcd) {
+    int32_t ret_val = 0;
     uint8_t lo, hi;
     for (int8_t i = 4; i >= 0; i --) {
       lo = bcd[i] & 0x0F;
