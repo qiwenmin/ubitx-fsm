@@ -51,7 +51,7 @@ private:
 
   uint8_t _last_fbutton_state;
 
-  int8_t _menu_idx, _submenu_idx;
+  int8_t _menu_idx, _submenu_idx, _submenu_count;
 
   int32_t _freq_adj_base;
 
@@ -60,6 +60,7 @@ private:
   void update_freq_adj_base();
 
   void _print_rig_mode(uint8_t mode, uint8_t col, uint8_t row);
+  uint8_t _menu_idx_to_mode(int8_t submenu_idx);
 };
 
 #endif // __UI_TASKS_H__

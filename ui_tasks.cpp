@@ -146,8 +146,21 @@ uint8_t EncoderTask::read_encoder() {
 #define FBTN_DOWN_LONG 2
 #define FBTN_DOWN_LONG_LONG 3
 
+typedef enum {
+  MM_MODE = 0,
+  MM_EXCHANGE_VFO,
+  MM_EQUALIZE_VFO,
+  MM_SPLIT,
+  MM_SELECT_VFO_MEM,
+  MM_MEM_TO_VFO,
+  MM_WRITE_MEM,
+  MM_CLEAR_MEM,
+  MM_EXIT
+} MainMenuIdx;
+
 void UiTask::init() {
   _menu_idx = _submenu_idx = 0;
+  _submenu_count = 0;
 
   _last_fbutton_state = FBTN_UP;
 
@@ -218,7 +231,67 @@ void UiTask::in_state(int8_t state) {
   if (fbtn_change) {
     if (_last_fbutton_state == FBTN_UP) {
       if (_current_state == MENU_MAIN) {
-        gotoState(MENU_NONE);
+        switch (_menu_idx) {
+        case MM_MODE:
+          if (_submenu_idx == -1) {
+            _submenu_count = 4;
+            if (rig.getMode() == MODE_CW)
+              _submenu_idx = 0;
+            else if (rig.getMode() == MODE_CWR)
+              _submenu_idx = 1;
+            else if (rig.getMode() == MODE_LSB)
+              _submenu_idx = 2;
+            else if (rig.getMode() == MODE_USB)
+              _submenu_idx = 3;
+
+            update_display(this);
+          } else {
+            rig.setMode(_menu_idx_to_mode(_submenu_idx));
+            gotoState(MENU_NONE);
+          }
+          break;
+        case MM_EXCHANGE_VFO:
+          rig.exchangeVfo();
+          gotoState(MENU_NONE);
+          break;
+        case MM_EQUALIZE_VFO:
+          rig.equalizeVfo();
+          gotoState(MENU_NONE);
+          break;
+        case MM_SPLIT:
+          rig.setSplit(rig.getSplit() == ON ? OFF : ON);
+          gotoState(MENU_NONE);
+          break;
+        case MM_SELECT_VFO_MEM:
+          // TODO
+          if (rig.isVfo()) {
+            rig.selectMem();
+          } else {
+            rig.selectVfo();
+          }
+          gotoState(MENU_NONE);
+          break;
+        case MM_MEM_TO_VFO:
+          // TODO
+          rig.memoryToVfo();
+          gotoState(MENU_NONE);
+          break;
+        case MM_WRITE_MEM:
+          // TODO
+          rig.writeMemory();
+          gotoState(MENU_NONE);
+          break;
+        case MM_CLEAR_MEM:
+          // TODO
+          rig.clearMemory();
+          gotoState(MENU_NONE);
+          break;
+        case MM_EXIT:
+          gotoState(MENU_NONE);
+          break;
+        default:
+          break;
+        }
       } else if (_current_state == MENU_NONE) {
         if (fbtn_from_state != FBTN_DOWN_LONG_LONG) {
           gotoState(MENU_MAIN);
@@ -264,13 +337,25 @@ void UiTask::in_state(int8_t state) {
   case MENU_MAIN:
     if (enc_val != 0) {
       if (enc_val > 1) {
-        _menu_idx ++;
-        if (_menu_idx > 8) _menu_idx = 8;
-        else need_update = true;
+        if (_submenu_idx == -1) {
+          _menu_idx ++;
+          if (_menu_idx > 8) _menu_idx = 8;
+          else need_update = true;
+        } else {
+          _submenu_idx ++;
+          if (_submenu_idx == _submenu_count) _submenu_idx = 0;
+          need_update = true;
+        }
       } else if (enc_val < -1) {
-        _menu_idx --;
-        if (_menu_idx < 0) _menu_idx = 0;
-        else need_update = true;
+        if (_submenu_idx == -1) {
+          _menu_idx --;
+          if (_menu_idx < 0) _menu_idx = 0;
+          else need_update = true;
+        } else {
+          _submenu_idx --;
+          if (_submenu_idx < 0) _submenu_idx = _submenu_count - 1;
+          need_update = true;
+        }
       }
 
       if (need_update) {
@@ -364,35 +449,42 @@ void UiTask::update_rig_display() {
 }
 
 void UiTask::update_menu_display() {
+  uint8_t mode = rig.getMode();
+  if (_submenu_idx != -1) mode = _menu_idx_to_mode(_submenu_idx);
+
   displayTask.print0("             "); // clear the first 13 chars
   switch (_menu_idx) {
-  case 0:
+  case MM_MODE:
     displayTask.print0("0.Mode: ");
-    _print_rig_mode(rig.getMode(), 8, 0);
+    _print_rig_mode(mode, 8, 0);
+    if (_submenu_idx != -1) {
+      displayTask.print(7, 0, "\x7f");
+      displayTask.print(11, 0, "\x7e");
+    }
     break;
-  case 1:
+  case MM_EXCHANGE_VFO:
     displayTask.print0("1.A/B");
     break;
-  case 2:
+  case MM_EQUALIZE_VFO:
     displayTask.print0("2.A=B");
     break;
-  case 3:
+  case MM_SPLIT:
     displayTask.print0("3.Split: ");
     displayTask.print(9, 0, rig.getSplit() == ON ? "Y" : "N");
     break;
-  case 4:
+  case MM_SELECT_VFO_MEM:
     displayTask.print0("4.V/M");
     break;
-  case 5:
+  case MM_MEM_TO_VFO:
     displayTask.print0("5.M\x7eV");
     break;
-  case 6:
+  case MM_WRITE_MEM:
     displayTask.print0("6.MW");
     break;
-  case 7:
+  case MM_CLEAR_MEM:
     displayTask.print0("7.MC");
     break;
-  case 8:
+  case MM_EXIT:
     displayTask.print0("8.Exit Menu");
     break;
   default:
@@ -431,5 +523,15 @@ void UiTask::_print_rig_mode(uint8_t mode, uint8_t col, uint8_t row) {
     displayTask.print(col, row, "USB");
     break;
   }
+}
+
+uint8_t UiTask::_menu_idx_to_mode(int8_t submenu_idx) {
+  uint8_t mode = MODE_CW;
+  if (submenu_idx == 0) mode = MODE_CW;
+  else if (submenu_idx == 1) mode = MODE_CWR;
+  else if (submenu_idx == 2) mode = MODE_LSB;
+  else if (submenu_idx == 3) mode = MODE_USB;
+
+  return mode;
 }
 
