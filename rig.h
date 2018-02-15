@@ -91,43 +91,43 @@ public:
     // freq
     uint32_t freq = getFreq();
     sprintf(_buf, "%2" PRIu32 ".%05" PRIu32, freq / 1000000, (freq % 1000000) / 10);
-    displayTask.print(4, 1, _buf);
+    displayTask.print(8, 1, _buf);
 
     // mode
     uint8_t mode = getMode();
     switch (mode) {
     case MODE_CW:
-      displayTask.print(13, 1, " CW");
+      displayTask.print(4, 1, " CW");
       break;
     case MODE_CWR:
-      displayTask.print(13, 1, "CWR");
+      displayTask.print(4, 1, "CWR");
       break;
     case MODE_LSB:
-      displayTask.print(13, 1, "LSB");
+      displayTask.print(4, 1, "LSB");
       break;
     case MODE_USB:
-      displayTask.print(13, 1, "USB");
+      displayTask.print(4, 1, "USB");
       break;
     }
 
     // SPLIT?
-    displayTask.print(6, 0, getSplit() == ON ? "SPL" : "   ");
+    displayTask.print(4, 0, getSplit() == ON ? "SPL" : "   ");
 
     // Lock?
-    displayTask.print(10, 0, getDialLock() == ON ? "LCK" : "   ");
+    displayTask.print(8, 0, getDialLock() == ON ? "LCK" : "   ");
 
     // VFO? MEM?
-    displayTask.print(0, 0, isVfo() ? "VFO-" : "MEM-");
+    displayTask.print(0, 1, isVfo() ? "V-" : "M-");
 
     // VFO A? B?
-    displayTask.print(4, 0, getVfo() == VFO_A ? "A" : "B");
+    displayTask.print(2, 1, getVfo() == VFO_A ? "A" : "B");
 
     // Mem OK?
-    displayTask.print(0, 1, isMemOk() ? "M" : "-");
+    displayTask.print(0, 0, isMemOk() ? "M" : "-");
 
     // Ch#
     sprintf(_buf, "%02d", getMemCh());
-    displayTask.print(1, 1, _buf);
+    displayTask.print(1, 0, _buf);
 
     // TX?
     displayTask.print(14, 0, getTx() == ON ? "TX" : "  ");
