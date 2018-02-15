@@ -206,7 +206,7 @@ public:
   };
 
   bool selectMemCh(uint8_t ch) {
-    if (ch >= MEM_SIZE || (!isMemOk())) {
+    if (ch >= MEM_SIZE) {
       return false;
     } else {
       _ch_idx = ch;
