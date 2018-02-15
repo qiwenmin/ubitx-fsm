@@ -426,23 +426,18 @@ void UiTask::update_rig_display() {
   _print_rig_mode(rig.getMode(), 4, 1);
 
   // SPLIT?
-  displayTask.print(8, 0, rig.getSplit() == ON ? "SPL" : "   ");
+  displayTask.print(4, 0, rig.getSplit() == ON ? "SPL" : "   ");
 
   // Lock?
-  displayTask.print(4, 0, rig.getDialLock() == ON ? "LCK" : "   ");
+  displayTask.print(0, 0, rig.getDialLock() == ON ? "LCK" : "   ");
 
   // VFO? MEM?
-  displayTask.print(0, 1, rig.isVfo() ? "V-" : "M-");
+  // Ch#
+  sprintf(_buf, "%02d", rig.getMemCh());
+  displayTask.print(0, 1, rig.isVfo() ? "V-" : _buf);
 
   // VFO A? B?
   displayTask.print(2, 1, rig.getVfo() == VFO_A ? "A" : "B");
-
-  // Mem OK?
-  displayTask.print(0, 0, rig.isMemOk() ? "M" : "?");
-
-  // Ch#
-  sprintf(_buf, "%02d", rig.getMemCh());
-  displayTask.print(1, 0, _buf);
 
   // TX?
   displayTask.print(14, 0, rig.getTx() == ON ? "TX" : "  ");
