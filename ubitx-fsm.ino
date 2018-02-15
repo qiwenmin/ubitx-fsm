@@ -17,10 +17,11 @@
 #include "objs.h"
 #include "cat_task.h"
 #include "display_task.h"
+#include "ui_tasks.h"
 #include "rig.h"
 #include "led_def.h"
 
-FsmOs fsmOs(2);
+FsmOs fsmOs(6);
 
 void setup() {
   pinMode(LED_PIN, OUTPUT);
@@ -28,6 +29,10 @@ void setup() {
 
   fsmOs.addTask(&displayTask);
   fsmOs.addTask(&catTask);
+  fsmOs.addTask(&fbuttonTask);
+  fsmOs.addTask(&pttTask);
+  fsmOs.addTask(&encoderTask);
+  fsmOs.addTask(&uiTask);
 
   fsmOs.init();
 }

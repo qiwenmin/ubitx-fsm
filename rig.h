@@ -17,7 +17,7 @@
 #define __RIG_H__
 
 #include <stdint.h>
-#include "display_task.h"
+#include "ui_tasks.h"
 #include "objs.h"
 
 #include "led_def.h"
@@ -85,52 +85,8 @@ public:
     _mem[0].vfos[VFO_A].mode = MODE_USB;
   };
 
-  void refreshDisplay() {
-    char _buf[17];
-
-    // freq
-    uint32_t freq = getFreq();
-    sprintf(_buf, "%2" PRIu32 ".%05" PRIu32, freq / 1000000, (freq % 1000000) / 10);
-    displayTask.print(8, 1, _buf);
-
-    // mode
-    uint8_t mode = getMode();
-    switch (mode) {
-    case MODE_CW:
-      displayTask.print(4, 1, " CW");
-      break;
-    case MODE_CWR:
-      displayTask.print(4, 1, "CWR");
-      break;
-    case MODE_LSB:
-      displayTask.print(4, 1, "LSB");
-      break;
-    case MODE_USB:
-      displayTask.print(4, 1, "USB");
-      break;
-    }
-
-    // SPLIT?
-    displayTask.print(4, 0, getSplit() == ON ? "SPL" : "   ");
-
-    // Lock?
-    displayTask.print(8, 0, getDialLock() == ON ? "LCK" : "   ");
-
-    // VFO? MEM?
-    displayTask.print(0, 1, isVfo() ? "V-" : "M-");
-
-    // VFO A? B?
-    displayTask.print(2, 1, getVfo() == VFO_A ? "A" : "B");
-
-    // Mem OK?
-    displayTask.print(0, 0, isMemOk() ? "M" : "-");
-
-    // Ch#
-    sprintf(_buf, "%02d", getMemCh());
-    displayTask.print(1, 0, _buf);
-
-    // TX?
-    displayTask.print(14, 0, getTx() == ON ? "TX" : "  ");
+  void rigChanged() {
+    uiTask.update_display(this);
   };
 
   void setFreq(uint32_t freq) {
@@ -142,7 +98,7 @@ public:
     else
       _working_ch->vfos[_working_ch->active_vfo].freq = freq;
 
-    refreshDisplay();
+    rigChanged();
   };
 
   uint32_t getRxFreq() { return _working_ch->vfos[_working_ch->active_vfo].freq; };
@@ -163,7 +119,7 @@ public:
       selectVfo();
       _working_ch->vfos[_working_ch->active_vfo].mode = mode;
 
-      refreshDisplay();
+      rigChanged();
 
       return true;
     } else {
@@ -189,7 +145,7 @@ public:
       _tx = tx;
 
       digitalWrite(LED_PIN, tx == ON ? LED_ON_VALUE : LED_OFF_VALUE);
-      refreshDisplay();
+      rigChanged();
     }
   };
 
@@ -207,45 +163,45 @@ public:
   void exchangeVfo() {
     _working_ch->active_vfo = _working_ch->active_vfo == VFO_A ? VFO_B : VFO_A;
 
-    refreshDisplay();
+    rigChanged();
   };
 
   void equalizeVfo() {
     _working_ch->vfos[0].freq = _working_ch->vfos[1].freq = getRxFreq();
     _working_ch->vfos[0].mode = _working_ch->vfos[1].mode = getRxMode();
 
-    refreshDisplay();
+    rigChanged();
   };
 
   void setVfo(uint8_t idx) {
     _working_ch->active_vfo = idx;
-    refreshDisplay();
+    rigChanged();
   };
 
   void setSplit(uint8_t val) {
     selectVfo();
     _working_ch->split = val;
-    refreshDisplay();
+    rigChanged();
   };
 
   uint8_t getSplit() { return _working_ch->split; };
 
   void setDialLock(uint8_t val) {
     _dial_lock = val;
-    refreshDisplay();
+    rigChanged();
   };
 
   uint8_t getDialLock() { return _dial_lock; };
 
   void selectVfo() {
     _working_ch = &_vfo_ch;
-    refreshDisplay();
+    rigChanged();
   };
 
   void selectMem() {
     if (isMemOk()) {
       _working_ch = &_mem[_ch_idx];
-      refreshDisplay();
+      rigChanged();
     }
   };
 
@@ -254,7 +210,7 @@ public:
       return false;
     } else {
       _ch_idx = ch;
-      refreshDisplay();
+      rigChanged();
       return true;
     }
   };
@@ -264,21 +220,21 @@ public:
   void writeMemory() {
     if (isVfo()) {
       copy_channel(&_mem[_ch_idx], _working_ch);
-      refreshDisplay();
+      rigChanged();
     }
   };
 
   void memoryToVfo() {
     if (isMemOk()) {
       copy_channel(&_vfo_ch, &_mem[_ch_idx]);
-      refreshDisplay();
+      rigChanged();
     }
   };
 
   void clearMemory() {
     selectVfo();
     memset(&_mem[_ch_idx], 0, sizeof(Channel));
-    refreshDisplay();
+    rigChanged();
   };
 
   bool isVfo() { return _working_ch == (&_vfo_ch); };

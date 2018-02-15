@@ -41,11 +41,6 @@ void DisplayTask::init() {
   lcd.begin(16, 2);
 #endif // ARDUINO_AVR_NANO
 
-  print0("--- --- ---   --");
-  print1("--- --- --.-----");
-
-  rig.refreshDisplay();
-
   delay(20, UPDATE_DISPLAY);
 }
 

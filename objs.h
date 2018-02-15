@@ -18,10 +18,17 @@
 
 class CatTask;
 class DisplayTask;
+class ButtonInputTask;
+class EncoderTask;
+class UiTask;
 class Rig;
 
 extern CatTask catTask;
 extern DisplayTask displayTask;
+extern ButtonInputTask fbuttonTask;
+extern ButtonInputTask pttTask;
+extern EncoderTask encoderTask;
+extern UiTask uiTask;
 extern Rig rig;
 
 #endif // __OBJS_H__

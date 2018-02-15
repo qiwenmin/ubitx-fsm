@@ -16,9 +16,14 @@
 #include "objs.h"
 #include "cat_task.h"
 #include "display_task.h"
+#include "ui_tasks.h"
 #include "rig.h"
 
 CatTask catTask;
 DisplayTask displayTask;
+ButtonInputTask fbuttonTask(A2);
+ButtonInputTask pttTask(A3);
+EncoderTask encoderTask(A0, A1);
+UiTask uiTask;
 Rig rig;
 

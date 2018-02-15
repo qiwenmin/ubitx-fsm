@@ -16,6 +16,10 @@ public:
 
   virtual void in_state(int8_t) {};
 
+  void clear() {
+    memset(_buf, ' ', 32);
+  };
+
   void print0(const char *str) { print(0, str); };
   void print1(const char *str) { print(1, str); };
   void print(uint8_t row, const char *str) { print(0, row, str); };
