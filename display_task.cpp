@@ -12,9 +12,16 @@
 
 U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
 
+static int counter = 0;
+
 #endif // ARDUINO_GENERIC_STM32F103C
 
-static int counter = 0;
+#ifdef ARDUINO_AVR_NANO
+
+#include <LiquidCrystal.h>
+LiquidCrystal lcd(8, 9, 10, 11, 12, 13);
+
+#endif // ARDUINO_AVR_NANO
 
 #define UPDATE_DISPLAY (FSM_STATE_USERDEF + 1)
 
@@ -30,8 +37,12 @@ void DisplayTask::init() {
 
 #endif // ARDUINO_GENERIC_STM32F103C
 
-  print0("----- --- --- --");
-  print1("--- --.----- ---");
+#ifdef ARDUINO_AVR_NANO
+  lcd.begin(16, 2);
+#endif // ARDUINO_AVR_NANO
+
+  print0("--- --- ---   --");
+  print1("--- --- --.-----");
 
   rig.refreshDisplay();
 
@@ -40,13 +51,14 @@ void DisplayTask::init() {
 
 bool DisplayTask::on_state_change(int8_t new_state, int8_t) {
   if (new_state == UPDATE_DISPLAY) {
+
+#ifdef ARDUINO_GENERIC_STM32F103C
+
     counter ++;
     if (counter > 999) counter = 0;
 
     char cntMsg[4];
     sprintf(cntMsg, "%03d", counter);
-
-#ifdef ARDUINO_GENERIC_STM32F103C
 
     bool need_update = false;
 
@@ -80,6 +92,19 @@ bool DisplayTask::on_state_change(int8_t new_state, int8_t) {
     }
 
 #endif // ARDUINO_GENERIC_STM32F103C
+
+#ifdef ARDUINO_AVR_NANO
+    for (uint8_t row = 0; row < 2; row ++) {
+      for (uint8_t col = 0; col < 16; col ++) {
+        if (_buf[row][col] != _printed[row][col]) {
+          lcd.setCursor(col, row);
+          lcd.write(_buf[row][col]);
+
+          _printed[row][col] = _buf[row][col];
+        }
+      }
+    }
+#endif // ARDUINO_AVR_NANO
 
     delay(20, UPDATE_DISPLAY);
 
