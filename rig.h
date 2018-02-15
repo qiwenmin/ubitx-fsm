@@ -90,7 +90,11 @@ public:
   };
 
   void setFreq(int32_t freq) {
-    selectVfo();
+    if ((!rig.isVfo()) && rig.isMemOk()) {
+      copy_channel(&_vfo_ch, &_mem[_ch_idx]);
+      selectVfo();
+    }
+
     if (freq < MIN_FREQ)
       _working_ch->vfos[_working_ch->active_vfo].freq = MIN_FREQ;
     else if (freq > MAX_FREQ)
@@ -116,7 +120,11 @@ public:
 
   bool setMode(uint8_t mode) {
     if (mode == MODE_LSB || mode == MODE_USB || mode == MODE_CW || mode == MODE_CWR) {
-      selectVfo();
+      if ((!rig.isVfo()) && rig.isMemOk()) {
+        copy_channel(&_vfo_ch, &_mem[_ch_idx]);
+        selectVfo();
+      }
+
       _working_ch->vfos[_working_ch->active_vfo].mode = mode;
 
       rigChanged();
@@ -161,12 +169,22 @@ public:
   };
 
   void exchangeVfo() {
+    if ((!rig.isVfo()) && rig.isMemOk()) {
+      copy_channel(&_vfo_ch, &_mem[_ch_idx]);
+      selectVfo();
+    }
+
     _working_ch->active_vfo = _working_ch->active_vfo == VFO_A ? VFO_B : VFO_A;
 
     rigChanged();
   };
 
   void equalizeVfo() {
+    if ((!rig.isVfo()) && rig.isMemOk()) {
+      copy_channel(&_vfo_ch, &_mem[_ch_idx]);
+      selectVfo();
+    }
+
     _working_ch->vfos[0].freq = _working_ch->vfos[1].freq = getRxFreq();
     _working_ch->vfos[0].mode = _working_ch->vfos[1].mode = getRxMode();
 
@@ -174,12 +192,21 @@ public:
   };
 
   void setVfo(uint8_t idx) {
+    if ((!rig.isVfo()) && rig.isMemOk()) {
+      copy_channel(&_vfo_ch, &_mem[_ch_idx]);
+      selectVfo();
+    }
+
     _working_ch->active_vfo = idx;
     rigChanged();
   };
 
   void setSplit(uint8_t val) {
-    selectVfo();
+    if ((!rig.isVfo()) && rig.isMemOk()) {
+      copy_channel(&_vfo_ch, &_mem[_ch_idx]);
+      selectVfo();
+    }
+
     _working_ch->split = val;
     rigChanged();
   };
@@ -205,12 +232,12 @@ public:
     }
   };
 
-  bool selectMemCh(uint8_t ch) {
+  bool selectMemCh(uint8_t ch, bool need_update = true) {
     if (ch >= MEM_SIZE) {
       return false;
     } else {
       _ch_idx = ch;
-      rigChanged();
+      if (need_update) rigChanged();
       return true;
     }
   };
@@ -238,7 +265,8 @@ public:
   };
 
   bool isVfo() { return _working_ch == (&_vfo_ch); };
-  bool isMemOk() { return _mem[_ch_idx].vfos[_mem[_ch_idx].active_vfo].freq != 0; };
+  bool isMemOk() { return isMemOk(_ch_idx); };
+  bool isMemOk(uint8_t ch_idx) { return _mem[ch_idx].vfos[_mem[ch_idx].active_vfo].freq != 0; };
 private:
   uint8_t _tx;
   uint8_t _dial_lock;
