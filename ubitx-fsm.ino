@@ -19,13 +19,12 @@
 #include "display_task.h"
 #include "ui_tasks.h"
 #include "rig.h"
-#include "led_def.h"
 
 FsmOs fsmOs(6);
 
 void setup() {
-  pinMode(LED_PIN, OUTPUT);
-  digitalWrite(LED_PIN, LED_OFF_VALUE);
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, LOW);
 
   fsmOs.addTask(&displayTask);
   fsmOs.addTask(&catTask);

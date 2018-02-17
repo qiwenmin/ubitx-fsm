@@ -20,8 +20,6 @@
 #include "ui_tasks.h"
 #include "objs.h"
 
-#include "led_def.h"
-
 #define MIN_FREQ 500000
 #define MAX_FREQ 30000000
 
@@ -152,7 +150,7 @@ public:
     if (tx == ON || tx == OFF) {
       _tx = tx;
 
-      digitalWrite(LED_PIN, tx == ON ? LED_ON_VALUE : LED_OFF_VALUE);
+      digitalWrite(LED_BUILTIN, tx == ON ? HIGH : LOW);
       rigChanged();
     }
   };
