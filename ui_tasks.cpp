@@ -13,8 +13,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ui_tasks.h"
+#include <avr/pgmspace.h>
 
+#include "ui_tasks.h"
+#include "menu.h"
 #include "version.h"
 #include "display_task.h"
 #include "rig.h"
@@ -161,21 +163,8 @@ uint8_t EncoderTask::read_encoder() {
 #define FBTN_DOWN_LONG 2
 #define FBTN_DOWN_LONG_LONG 3
 
-typedef enum {
-  MM_MODE = 0,
-  MM_EXCHANGE_VFO,
-  MM_EQUALIZE_VFO,
-  MM_SPLIT,
-  MM_SELECT_VFO_MEM,
-  MM_MEM_TO_VFO,
-  MM_WRITE_MEM,
-  MM_CLEAR_MEM,
-  MM_EXIT
-} MainMenuIdx;
-
 void UiTask::init() {
   _menu_idx = _submenu_idx = 0;
-  _submenu_count = 0;
 
   _last_fbutton_state = FBTN_UP;
 
@@ -215,7 +204,6 @@ bool UiTask::on_state_change(int8_t new_state, int8_t old_state) {
 void UiTask::in_state(int8_t state) {
   bool fbtn_change = false;
   uint8_t fbtn_from_state = _last_fbutton_state;
-  int8_t ch;
 
   if (_last_fbutton_state == FBTN_UP) {
     // up to down?
@@ -243,98 +231,26 @@ void UiTask::in_state(int8_t state) {
       }
     }
   }
-  
+
+  Menu_Item mi;
+  if (_current_state == MENU_MAIN) {
+    memcpy_P(&mi, &menu[_menu_idx], sizeof(mi));
+  }
+
   if (fbtn_change) {
     if (_last_fbutton_state == FBTN_UP) {
-      if (_current_state == MENU_MAIN) {
-        switch (_menu_idx) {
-        case MM_MODE:
-          if (_submenu_idx == -1) {
-            _submenu_count = 4;
-            if (rig.getMode() == MODE_CW)
-              _submenu_idx = 0;
-            else if (rig.getMode() == MODE_CWR)
-              _submenu_idx = 1;
-            else if (rig.getMode() == MODE_LSB)
-              _submenu_idx = 2;
-            else if (rig.getMode() == MODE_USB)
-              _submenu_idx = 3;
+      if (_current_state == MENU_MAIN) {        
+        if (mi.submenu_count != 0 && _submenu_idx == -1) {
+          if (mi.get_menu_value_f != NULL) {
+            _submenu_idx = (*mi.get_menu_value_f)();
+          }
 
-            update_display(this);
-          } else {
-            rig.setMode(_menu_idx_to_mode(_submenu_idx), false);
-            gotoState(MENU_NONE);
-          }
-          break;
-        case MM_EXCHANGE_VFO:
-          rig.exchangeVfo(false);
-          gotoState(MENU_NONE);
-          break;
-        case MM_EQUALIZE_VFO:
-          rig.equalizeVfo(false);
-          gotoState(MENU_NONE);
-          break;
-        case MM_SPLIT:
-          rig.setSplit(rig.getSplit() == ON ? OFF : ON, false);
-          gotoState(MENU_NONE);
-          break;
-        case MM_SELECT_VFO_MEM:
-          if (rig.isVfo()) {
-            if (!rig.isMemOk()) {
-              ch = rig.getNextMemOkCh(rig.getMemCh());
-              if (ch != -1) {
-                rig.selectMemCh(ch, false);
-                rig.selectMem(false);
-              }
-            }
-            rig.selectMem(false);
-          } else {
-            rig.selectVfo(false);
+          update_display(this);
+        } else {
+          if (mi.select_menu_f != NULL) {
+            (*mi.select_menu_f)(_submenu_idx);
           }
           gotoState(MENU_NONE);
-          break;
-        case MM_MEM_TO_VFO:
-        case MM_CLEAR_MEM:
-          if (_submenu_idx == -1) {
-            _submenu_count = MEM_SIZE;
-            if (rig.isMemOk()) {
-              _submenu_idx = rig.getMemCh();
-            } else {
-              _submenu_idx = rig.getNextMemOkCh(rig.getMemCh());
-            }
-
-            update_display(this);
-          } else {
-            if (_menu_idx == MM_MEM_TO_VFO) {
-              rig.selectMemCh(_submenu_idx, false);
-              rig.memoryToVfo(_submenu_idx, false);
-              rig.selectVfo(false);
-            } else if (_menu_idx == MM_CLEAR_MEM) {
-              rig.selectMemCh(_submenu_idx, false);
-              rig.clearMemory(false);
-            }
-            gotoState(MENU_NONE);
-          }
-          break;
-        case MM_WRITE_MEM:
-          if (_submenu_idx == -1) {
-            if (rig.isVfo()) {
-              _submenu_count = MEM_SIZE;
-              _submenu_idx = rig.getMemCh();
-
-              update_display(this);
-            }
-          } else {
-            rig.selectMemCh(_submenu_idx, false);
-            rig.writeMemory(_submenu_idx, false);
-            gotoState(MENU_NONE);
-          }
-          break;
-        case MM_EXIT:
-          gotoState(MENU_NONE);
-          break;
-        default:
-          break;
         }
       } else if (_current_state == MENU_NONE) {
         if (fbtn_from_state == FBTN_DOWN) {
@@ -413,20 +329,18 @@ void UiTask::in_state(int8_t state) {
       if (d_idx != 0) {
         if (_submenu_idx == -1) {
           _menu_idx += d_idx;
-          if (_menu_idx > 8) _menu_idx = 8;
+          if (_menu_idx >= menu_item_count) _menu_idx = menu_item_count - 1;
           else if (_menu_idx < 0) _menu_idx = 0;
           else need_update = true;
         } else {
-          if (_menu_idx == MM_MEM_TO_VFO || _menu_idx == MM_CLEAR_MEM) {
-            if (d_idx == 1) _submenu_idx = rig.getNextMemOkCh(_submenu_idx);
-            else if (d_idx == -1) _submenu_idx = rig.getPrevMemOkCh(_submenu_idx);
-            need_update = true;
+          if (mi.get_next_menu_value_f != NULL) {
+            _submenu_idx = (*mi.get_next_menu_value_f)(_submenu_idx, d_idx > 0);
           } else {
             _submenu_idx += d_idx;
-            if (_submenu_idx == _submenu_count) _submenu_idx = 0;
-            else if (_submenu_idx == -1) _submenu_idx = _submenu_count - 1;
-            need_update = true;
+            if (_submenu_idx == mi.submenu_count) _submenu_idx = 0;
+            else if (_submenu_idx == -1) _submenu_idx = mi.submenu_count - 1;
           }
+          need_update = true;
         }
       }
 
@@ -495,7 +409,8 @@ void UiTask::update_rig_display() {
   displayTask.print(8, 1, _buf);
 
   // mode
-  _print_rig_mode(rig.getMode(), 4, 1);
+  format_menu_value_mode(_buf, get_menu_value_mode());
+  displayTask.print(4, 1, _buf);
 
   // SPLIT?
   displayTask.print(4, 0, rig.getSplit() == ON ? "SPL" : "   ");
@@ -516,61 +431,47 @@ void UiTask::update_rig_display() {
 }
 
 void UiTask::update_menu_display() {
-  char _buf[17];
-  uint8_t mode = rig.getMode();
-  if (_submenu_idx != -1) mode = _menu_idx_to_mode(_submenu_idx);
+  char menu_text[12], menu_value_text[6], menu_fulltext[14];
+  char n = ' ';
+  int8_t v = _submenu_idx;
+
+  Menu_Item mi;
+  memcpy_P(&mi, &menu[_menu_idx], sizeof(mi));
+
+  if (_menu_idx < 10) {
+    n = '0' + _menu_idx;
+  } else {
+    n = 'a' + (_menu_idx - 10);
+  }
+
+  if (mi.format_menu_f != NULL) {
+    (*mi.format_menu_f)(menu_text);
+  } else {
+    sprintf(menu_text, mi.text);
+  }
+
+  if (v == -1 && mi.get_menu_value_f != NULL) {
+    v = (*mi.get_menu_value_f)();
+  }
+
+  if (mi.format_menu_value_f != NULL) {
+    (*mi.format_menu_value_f)(menu_value_text, v);
+  } else {
+    sprintf(menu_value_text, "%02d", v);
+  }
+
+  if (mi.submenu_count == 0) {
+    sprintf(menu_fulltext, "%c.%s", n, menu_text);
+  } else {
+    if (_submenu_idx == -1) {
+      sprintf(menu_fulltext, "%c.%s: %s", n, menu_text, menu_value_text);
+    } else {
+      sprintf(menu_fulltext, "%c.%s:\x7f%s\x7e", n, menu_text, menu_value_text);
+    }
+  }
 
   displayTask.print0("             "); // clear the first 13 chars
-  switch (_menu_idx) {
-  case MM_MODE:
-    displayTask.print0("0.Mode: ");
-    _print_rig_mode(mode, 8, 0);
-    if (_submenu_idx != -1) {
-      displayTask.print(7, 0, "\x7f");
-      displayTask.print(11, 0, "\x7e");
-    }
-    break;
-  case MM_EXCHANGE_VFO:
-    displayTask.print0("1.A/B");
-    break;
-  case MM_EQUALIZE_VFO:
-    displayTask.print0("2.A=B");
-    break;
-  case MM_SPLIT:
-    displayTask.print0("3.Split ");
-    displayTask.print(8, 0, rig.getSplit() == ON ? "Off" : "On");
-    break;
-  case MM_SELECT_VFO_MEM:
-    displayTask.print0("4.V/M");
-    break;
-  case MM_MEM_TO_VFO:
-    displayTask.print0("5.M\x7eV");
-    if (_submenu_idx != -1) {
-      sprintf(_buf, rig.isMemOk(_submenu_idx) ? ":\x7fM%02d\x7e" : ":\x7f?%02d\x7e", _submenu_idx);
-      displayTask.print(5, 0, _buf);
-    }
-    break;
-  case MM_WRITE_MEM:
-    displayTask.print0("6.MW");
-    if (_submenu_idx != -1) {
-      sprintf(_buf, rig.isMemOk(_submenu_idx) ? ":\x7fM%02d\x7e" : ":\x7f?%02d\x7e", _submenu_idx);
-      displayTask.print(4, 0, _buf);
-    }
-    break;
-  case MM_CLEAR_MEM:
-    displayTask.print0("7.MC");
-    if (_submenu_idx != -1) {
-      sprintf(_buf, rig.isMemOk(_submenu_idx) ? ":\x7fM%02d\x7e" : ":\x7f?%02d\x7e", _submenu_idx);
-      displayTask.print(4, 0, _buf);
-    }
-    break;
-  case MM_EXIT:
-    displayTask.print0("8.Exit Menu");
-    break;
-  default:
-    displayTask.print0("###ERR###");
-    break;
-  }
+  displayTask.print0(menu_fulltext);
 }
 
 void UiTask::update_freq_adj_base() {
@@ -588,30 +489,4 @@ void UiTask::update_freq_adj_base() {
   displayTask.print(p, 0, "_");
 }
 
-void UiTask::_print_rig_mode(uint8_t mode, uint8_t col, uint8_t row) {
-  switch (mode) {
-  case MODE_CW:
-    displayTask.print(col, row, "CW ");
-    break;
-  case MODE_CWR:
-    displayTask.print(col, row, "CWR");
-    break;
-  case MODE_LSB:
-    displayTask.print(col, row, "LSB");
-    break;
-  case MODE_USB:
-    displayTask.print(col, row, "USB");
-    break;
-  }
-}
-
-uint8_t UiTask::_menu_idx_to_mode(int8_t submenu_idx) {
-  uint8_t mode = MODE_CW;
-  if (submenu_idx == 0) mode = MODE_CW;
-  else if (submenu_idx == 1) mode = MODE_CWR;
-  else if (submenu_idx == 2) mode = MODE_LSB;
-  else if (submenu_idx == 3) mode = MODE_USB;
-
-  return mode;
-}
 
