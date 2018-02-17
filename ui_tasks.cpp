@@ -232,6 +232,12 @@ void UiTask::in_state(int8_t state) {
     }
   }
 
+  if (rig.getTx() == ON) {
+    if (_current_state != MENU_NONE) gotoState(MENU_NONE);
+
+    return;
+  }
+
   Menu_Item mi;
   if (_current_state == MENU_MAIN) {
     memcpy_P(&mi, &menu[_menu_idx], sizeof(mi));

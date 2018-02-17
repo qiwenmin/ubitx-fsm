@@ -88,6 +88,8 @@ public:
   };
 
   void setFreq(int32_t freq, bool need_update = true) {
+    if (getTx() == ON) return;
+
     if ((!rig.isVfo()) && rig.isMemOk()) {
       copy_channel(&_vfo_ch, &_mem[_ch_idx]);
       selectVfo(false);
@@ -122,6 +124,8 @@ public:
   };
 
   bool setMode(uint8_t mode, bool need_update = true) {
+    if (getTx() == ON) return false;
+
     if (mode == MODE_LSB || mode == MODE_USB || mode == MODE_CW || mode == MODE_CWR) {
       if ((!rig.isVfo()) && rig.isMemOk()) {
         copy_channel(&_vfo_ch, &_mem[_ch_idx]);
@@ -177,6 +181,8 @@ public:
   };
 
   void exchangeVfo(bool need_update = true) {
+    if (getTx() == ON) return;
+
     if ((!rig.isVfo()) && rig.isMemOk()) {
       copy_channel(&_vfo_ch, &_mem[_ch_idx]);
       selectVfo(false);
@@ -188,6 +194,8 @@ public:
   };
 
   void equalizeVfo(bool need_update = true) {
+    if (getTx() == ON) return;
+
     if ((!rig.isVfo()) && rig.isMemOk()) {
       copy_channel(&_vfo_ch, &_mem[_ch_idx]);
       selectVfo(false);
@@ -200,6 +208,8 @@ public:
   };
 
   void setVfo(uint8_t idx, bool need_update = true) {
+    if (getTx() == ON) return;
+
     if ((!rig.isVfo()) && rig.isMemOk()) {
       copy_channel(&_vfo_ch, &_mem[_ch_idx]);
       selectVfo(false);
@@ -210,6 +220,8 @@ public:
   };
 
   void setSplit(uint8_t val, bool need_update = true) {
+    if (getTx() == ON) return;
+
     if ((!rig.isVfo()) && rig.isMemOk()) {
       copy_channel(&_vfo_ch, &_mem[_ch_idx]);
       selectVfo(false);
@@ -222,6 +234,8 @@ public:
   uint8_t getSplit() { return _working_ch->split; };
 
   void setDialLock(uint8_t val, bool need_update = true) {
+    if (getTx() == ON) return;
+
     _dial_lock = val;
     if (need_update) rigChanged();
   };
@@ -229,11 +243,15 @@ public:
   uint8_t getDialLock() { return _dial_lock; };
 
   void selectVfo(bool need_update = true) {
+    if (getTx() == ON) return;
+
     _working_ch = &_vfo_ch;
     if (need_update) rigChanged();
   };
 
   void selectMem(bool need_update = true) {
+    if (getTx() == ON) return;
+
     if (isMemOk()) {
       _working_ch = &_mem[_ch_idx];
       if (need_update) rigChanged();
@@ -241,6 +259,8 @@ public:
   };
 
   bool selectMemCh(int8_t ch, bool need_update = true) {
+    if (getTx() == ON) return false;
+
     if (ch < 0 || ch >= MEM_SIZE) {
       return false;
     } else {
@@ -255,6 +275,8 @@ public:
   int8_t getMemCh() { return _ch_idx; };
 
   void writeMemory(int8_t ch_idx = -1, bool need_update = true) {
+    if (getTx() == ON) return;
+
     if (isVfo()) {
       copy_channel(&_mem[ch_idx == -1 ? _ch_idx : ch_idx], _working_ch);
       if (need_update) rigChanged();
@@ -262,6 +284,8 @@ public:
   };
 
   void memoryToVfo(int8_t ch_idx = -1, bool need_update = true) {
+    if (getTx() == ON) return;
+
     if (isMemOk(ch_idx == -1 ? _ch_idx : ch_idx)) {
       copy_channel(&_vfo_ch, &_mem[ch_idx == -1 ? _ch_idx : ch_idx]);
       if (need_update) rigChanged();
@@ -269,6 +293,8 @@ public:
   };
 
   void clearMemory(bool need_update = true) {
+    if (getTx() == ON) return;
+
     selectVfo(false);
     memset(&_mem[_ch_idx], 0, sizeof(Channel));
     if (need_update) rigChanged();
