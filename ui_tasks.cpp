@@ -408,15 +408,22 @@ void UiTask::update_rig_display() {
   sprintf(_buf, "%2" PRIu32 ".%05" PRIi32, freq / 1000000, (freq % 1000000) / 10);
   displayTask.print(8, 1, _buf);
 
+  freq = rig.getFreqAnother();
+  sprintf(_buf, "%2" PRIu32 ".%05" PRIi32, freq / 1000000, (freq % 1000000) / 10);
+  displayTask.print(8, 0, _buf);
+
   // mode
-  format_menu_value_mode(_buf, get_menu_value_mode());
+  format_mode(_buf, rig.getMode());
   displayTask.print(4, 1, _buf);
 
+  format_mode(_buf, rig.getModeAnother());
+  displayTask.print(4, 0, _buf);
+
   // SPLIT?
-  displayTask.print(4, 0, rig.getSplit() == ON ? "SPL" : "   ");
+  displayTask.print(2, 0, rig.getSplit() == ON ? "S" : " ");
 
   // Lock?
-  displayTask.print(0, 0, rig.getDialLock() == ON ? "LCK" : "   ");
+  displayTask.print(0, 0, rig.getDialLock() == ON ? '\x00' : ' ');
 
   // VFO? MEM?
   // Ch#
@@ -427,7 +434,7 @@ void UiTask::update_rig_display() {
   displayTask.print(2, 1, rig.getVfo() == VFO_A ? "A" : "B");
 
   // TX?
-  displayTask.print(14, 0, rig.getTx() == ON ? "TX" : "  ");
+  displayTask.print(14, 0, rig.getTx() == ON ? "\x04\x05" : "");
 }
 
 void UiTask::update_menu_display() {
@@ -466,11 +473,11 @@ void UiTask::update_menu_display() {
     if (_submenu_idx == -1) {
       sprintf(menu_fulltext, "%c.%s: %s", n, menu_text, menu_value_text);
     } else {
-      sprintf(menu_fulltext, "%c.%s:\x7f%s\x7e", n, menu_text, menu_value_text);
+      sprintf(menu_fulltext, "%c.%s:\x01%s\x02", n, menu_text, menu_value_text);
     }
   }
 
-  displayTask.print0("             "); // clear the first 13 chars
+  displayTask.print0("                "); // clear the first line
   displayTask.print0(menu_fulltext);
 }
 
@@ -486,7 +493,26 @@ void UiTask::update_freq_adj_base() {
   else if (_freq_adj_base == 100000) p = 11;
   else if (_freq_adj_base == 1000000) p = 9;
 
-  displayTask.print(p, 0, "_");
+  displayTask.print(p, 0, "\x03");
 }
 
+void UiTask::format_mode(char *output, uint8_t mode) {
+  switch (mode) {
+  case MODE_CW:
+    sprintf(output, "CW");
+    break;
+  case MODE_CWR:
+    sprintf(output, "CWR");
+    break;
+  case MODE_LSB:
+    sprintf(output, "LSB");
+    break;
+  case MODE_USB:
+    sprintf(output, "USB");
+    break;
+  default:
+    sprintf(output, "N/A");
+    break;
+  }
+}
 

@@ -36,6 +36,10 @@ public:
     }
   };
 
+  void print(uint8_t col, uint8_t row, char ch) {
+    _buf[row & 0x01][col & 0x0F] = ch;
+  }
+
 private:
   char _buf[2][16];
   char _printed[2][16];

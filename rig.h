@@ -116,6 +116,11 @@ public:
 
   int32_t getFreq() { return getTx() == ON ? getTxFreq() : getRxFreq(); };
 
+  int32_t getFreqAnother() {
+    uint8_t v = getVfo() == VFO_A ? VFO_B : VFO_A;
+    return _working_ch->vfos[v].freq;
+  };
+
   bool setMode(uint8_t mode, bool need_update = true) {
     if (mode == MODE_LSB || mode == MODE_USB || mode == MODE_CW || mode == MODE_CWR) {
       if ((!rig.isVfo()) && rig.isMemOk()) {
@@ -145,6 +150,11 @@ public:
   };
 
   uint8_t getMode() { return getTx() == ON ? getTxMode() : getRxMode(); };
+
+  uint8_t getModeAnother() {
+    uint8_t v = getVfo() == VFO_A ? VFO_B : VFO_A;
+    return _working_ch->vfos[v].mode;
+  };
 
   void setTx(uint8_t tx) {
     if (tx == ON || tx == OFF) {

@@ -37,8 +37,5 @@ typedef struct {
 extern const Menu_Item menu[];
 extern const uint8_t menu_item_count;
 
-void format_menu_value_mode(char *buf, int8_t val);
-int8_t get_menu_value_mode();
-
 #endif // __MENU_H__
 

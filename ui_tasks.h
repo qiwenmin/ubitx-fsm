@@ -73,6 +73,8 @@ private:
   void update_rig_display();
   void update_menu_display();
   void update_freq_adj_base();
+
+  void format_mode(char *, uint8_t);
 };
 
 #endif // __UI_TASKS_H__
