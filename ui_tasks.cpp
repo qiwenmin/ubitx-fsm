@@ -170,6 +170,9 @@ void UiTask::init() {
 
   _freq_adj_base = 100;
 
+  _last_tx = OFF;
+  _tx_flashing_at = 0;
+
   gotoState(MENU_WELCOME);
 }
 
@@ -235,8 +238,16 @@ void UiTask::in_state(int8_t state) {
   if (rig.getTx() == ON) {
     if (_current_state != MENU_NONE) gotoState(MENU_NONE);
 
+    if (_last_tx == OFF) {
+      _tx_flashing_at = millis();
+      _last_tx = ON;
+    }
+
+    displayTask.print(0, 0, ((millis() - _tx_flashing_at) / 500) & 0x01 ? '\x04' : '\x05');
     return;
   }
+
+  _last_tx = OFF;
 
   Menu_Item mi;
   if (_current_state == MENU_MAIN) {
@@ -440,7 +451,7 @@ void UiTask::update_rig_display() {
   displayTask.print(2, 1, rig.getVfo() == VFO_A ? "A" : "B");
 
   // TX?
-  displayTask.print(14, 0, rig.getTx() == ON ? "\x04\x05" : "");
+  displayTask.print(0, 0, rig.getTx() == ON ? "\x05\x06" : "");
 }
 
 void UiTask::update_menu_display() {

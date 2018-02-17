@@ -70,6 +70,9 @@ private:
 
   int32_t _freq_adj_base;
 
+  uint8_t _last_tx;
+  unsigned long _tx_flashing_at;
+
   void update_rig_display();
   void update_menu_display();
   void update_freq_adj_base();
