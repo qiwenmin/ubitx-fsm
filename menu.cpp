@@ -95,7 +95,7 @@ void select_menu_split(int8_t) {
   rig.setSplit(rig.getSplit() == ON ? OFF : ON, false);
 }
 
-void format_menu_split(char *buf) {
+void format_menu_split(char *buf, const char *, int8_t) {
   sprintf(buf, "Split %s", rig.getSplit() == ON ? "OFF" : "ON");
 }
 
@@ -164,6 +164,26 @@ int8_t get_next_menu_value_mem_ok_ch(int8_t val, bool forward) {
   return result;
 }
 
+void format_menu_cfm(char *buf, const char *original_text, int8_t val) {
+  if (val == -1) {
+    sprintf(buf, "%s", original_text);
+  } else {
+    sprintf(buf, "Confirm");
+  }
+}
+
+void format_menu_value_yes_no(char *buf, int8_t val) {
+  sprintf(buf, val == 0 ? "No" : "Yes");
+}
+
+int8_t get_menu_value_no() {
+  return 0;
+}
+
+void select_menu_rst_all(int8_t val) {
+  if (val == 1) rig.resetAll();
+}
+
 const Menu_Item menu[] PROGMEM = {
 // text submenu_count  select_menu_f             format_menu_f      get_menu_value_f          format_menu_value_f       get_next_menu_value_f
   {"Mode",          4, select_menu_mode,         NULL,              get_menu_value_mode,      format_menu_value_mode,   NULL                         },
@@ -174,7 +194,8 @@ const Menu_Item menu[] PROGMEM = {
   {"M\x7eV", MEM_SIZE, select_menu_mem_to_vfo,   NULL,              get_menu_value_mem_ok_ch, format_menu_value_mem_ch, get_next_menu_value_mem_ok_ch},
   {"MW",     MEM_SIZE, select_menu_mem_write,    NULL,              get_menu_value_mem_ch,    format_menu_value_mem_ch, NULL                         },
   {"MC",     MEM_SIZE, select_menu_mem_clear,    NULL,              get_menu_value_mem_ok_ch, format_menu_value_mem_ch, get_next_menu_value_mem_ok_ch},
-  {"Exit Menu",     0, NULL,                     NULL,              NULL,                     NULL,                     NULL                         }
+  {"Exit Menu",     0, NULL,                     NULL,              NULL,                     NULL,                     NULL                         },
+  {"Reset All",     2, select_menu_rst_all,      format_menu_cfm,   get_menu_value_no,        format_menu_value_yes_no, NULL                         }
 };
 
 const uint8_t menu_item_count = sizeof(menu) / sizeof(menu[0]);

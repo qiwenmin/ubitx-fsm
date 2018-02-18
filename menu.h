@@ -19,7 +19,7 @@
 #include <stdint.h>
 
 typedef void (*select_menu_func)(int8_t val);
-typedef void (*format_menu_func)(char *buf);
+typedef void (*format_menu_func)(char *buf, const char *original_text, int8_t val);
 typedef int8_t (*get_menu_value_func)();
 typedef void (*format_menu_value_func)(char *buf, int8_t val);
 typedef int8_t (*get_next_menu_value_func)(int8_t val, bool forward);

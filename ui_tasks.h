@@ -68,10 +68,9 @@ private:
 
   int8_t _menu_idx, _submenu_idx;
 
-  int32_t _freq_adj_base;
-
   uint8_t _last_tx;
   unsigned long _tx_flashing_at;
+  unsigned long _save_vfo_ch_at;
 
   void update_rig_display();
   void update_menu_display();

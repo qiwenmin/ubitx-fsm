@@ -168,10 +168,9 @@ void UiTask::init() {
 
   _last_fbutton_state = FBTN_UP;
 
-  _freq_adj_base = 100;
-
   _last_tx = OFF;
   _tx_flashing_at = 0;
+  _save_vfo_ch_at = millis();
 
   gotoState(MENU_WELCOME);
 }
@@ -205,6 +204,7 @@ bool UiTask::on_state_change(int8_t new_state, int8_t old_state) {
 }
 
 void UiTask::in_state(int8_t state) {
+  // read inputs
   bool fbtn_change = false;
   uint8_t fbtn_from_state = _last_fbutton_state;
 
@@ -235,6 +235,7 @@ void UiTask::in_state(int8_t state) {
     }
   }
 
+  // TX?
   if (rig.getTx() == ON) {
     if (_current_state != MENU_NONE) gotoState(MENU_NONE);
 
@@ -249,6 +250,13 @@ void UiTask::in_state(int8_t state) {
 
   _last_tx = OFF;
 
+  // Save VFO Ch every 10 seconds
+  if (millis() - _save_vfo_ch_at > 10000) {
+    rig.saveVfoCh();
+    _save_vfo_ch_at = millis();
+  }
+  
+  // Menu...
   Menu_Item mi;
   if (_current_state == MENU_MAIN) {
     memcpy_P(&mi, &menu[_menu_idx], sizeof(mi));
@@ -308,7 +316,7 @@ void UiTask::in_state(int8_t state) {
         if (times < 3) times = 1;
         else times -= 2;
 
-        rig.setFreq(rig.getFreq() + enc_val * times * _freq_adj_base, false);
+        rig.setFreq(rig.getFreq() + enc_val * times * rig.getFreqAdjBase(), false);
         update_display(this);
       } else {
         if (enc_val > 1) {
@@ -370,14 +378,18 @@ void UiTask::in_state(int8_t state) {
 
   case MENU_FREQ_ADJ_BASE:
     if (enc_val != 0) {
+      int32_t base = rig.getFreqAdjBase();
+
       if (enc_val > 1) {
-        if (_freq_adj_base > 10) {
-          _freq_adj_base /= 10;
+        if (base > 10) {
+          base /= 10;
+          rig.setFreqAdjBase(base);
           need_update = true;
         }
       } else if (enc_val < -1) {
-        if (_freq_adj_base < 1000000) {
-          _freq_adj_base *= 10;
+        if (base < 1000000) {
+          base *= 10;
+          rig.setFreqAdjBase(base);
           need_update = true;
         }
       }
@@ -469,7 +481,7 @@ void UiTask::update_menu_display() {
   }
 
   if (mi.format_menu_f != NULL) {
-    (*mi.format_menu_f)(menu_text);
+    (*mi.format_menu_f)(menu_text, mi.text, _submenu_idx);
   } else {
     sprintf(menu_text, mi.text);
   }
@@ -484,7 +496,7 @@ void UiTask::update_menu_display() {
     sprintf(menu_value_text, "%02d", v);
   }
 
-  if (mi.submenu_count == 0) {
+  if ((mi.submenu_count == 0) || ((_submenu_idx == -1) && (mi.format_menu_f != NULL))) {
     sprintf(menu_fulltext, "%c.%s", n, menu_text);
   } else {
     if (_submenu_idx == -1) {
@@ -503,12 +515,14 @@ void UiTask::update_freq_adj_base() {
 
   uint8_t p = 10;
 
-  if (_freq_adj_base == 10) p = 15;
-  else if (_freq_adj_base == 100) p = 14;
-  else if (_freq_adj_base == 1000) p = 13;
-  else if (_freq_adj_base == 10000) p = 12;
-  else if (_freq_adj_base == 100000) p = 11;
-  else if (_freq_adj_base == 1000000) p = 9;
+  int32_t base = rig.getFreqAdjBase();
+
+  if (base == 10) p = 15;
+  else if (base == 100) p = 14;
+  else if (base == 1000) p = 13;
+  else if (base == 10000) p = 12;
+  else if (base == 100000) p = 11;
+  else if (base == 1000000) p = 9;
 
   displayTask.print(p, 0, "\x03");
 }

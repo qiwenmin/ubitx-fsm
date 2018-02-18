@@ -38,16 +38,22 @@
 
 #define MEM_SIZE 20 // provides channel#00 to channel#19
 
+#pragma pack(push, 1)
+
+// 5 bytes
 typedef struct {
   int32_t freq;
   uint8_t mode;
 } VFO;
 
+// 12 bytes
 typedef struct {
   VFO vfos[2]; // VFO A/B
   uint8_t active_vfo;
   uint8_t split;
 } Channel;
+
+#pragma pack(pop)
 
 class Rig {
 public:
@@ -116,13 +122,23 @@ public:
 
   int8_t getPrevMemOkCh(int8_t ch_idx);
   int8_t getNextMemOkCh(int8_t ch_idx);
+
+  void resetAll();
+
+  void saveVfoCh();
+  void setFreqAdjBase(int32_t base);
+  int32_t getFreqAdjBase();
 private:
   uint8_t _tx;
   uint8_t _dial_lock;
+  bool _is_vfo;
+  int32_t _freq_adj_base;
 
   Channel *_working_ch;
   Channel _vfo_ch;
-  Channel _mem[MEM_SIZE];
+  Channel _vfo_ch_saved;
+  //Channel _mem[MEM_SIZE];
+  Channel _mem_ch;
   int8_t _ch_idx;
 };
 
