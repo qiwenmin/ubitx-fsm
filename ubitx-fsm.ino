@@ -18,20 +18,19 @@
 #include "cat_task.h"
 #include "display_task.h"
 #include "ui_tasks.h"
+#include "keyer_task.h"
 #include "rig.h"
 
-FsmOs fsmOs(6);
+FsmOs fsmOs(7);
 
 void setup() {
-  pinMode(LED_BUILTIN, OUTPUT);
-  digitalWrite(LED_BUILTIN, LOW);
-
   fsmOs.addTask(&displayTask);
   fsmOs.addTask(&catTask);
   fsmOs.addTask(&fbuttonTask);
   fsmOs.addTask(&pttTask);
   fsmOs.addTask(&encoderTask);
   fsmOs.addTask(&uiTask);
+  fsmOs.addTask(&keyerTask);
 
   fsmOs.init();
 }

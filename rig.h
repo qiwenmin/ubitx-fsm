@@ -21,7 +21,7 @@
 #include "objs.h"
 
 #define MIN_FREQ 500000
-#define MAX_FREQ 29999999
+#define MAX_FREQ 29999990
 
 #define MODE_LSB 0x00
 #define MODE_USB 0x01
@@ -57,7 +57,7 @@ typedef struct {
 
 class Rig {
 public:
-  Rig();
+  void init();
 
   void rigChanged();
 
@@ -140,6 +140,71 @@ private:
   //Channel _mem[MEM_SIZE];
   Channel _mem_ch;
   int8_t _ch_idx;
+
+  void updateDeviceFreqMode();
 };
+
+#define CW_KEY_STRAIGHT (0)
+#define CW_KEY_IAMBIC_A_L (1)
+#define CW_KEY_IAMBIC_A_R (2)
+#define CW_KEY_IAMBIC_B_L (3)
+#define CW_KEY_IAMBIC_B_R (4)
+
+class Device {
+public:
+  Device();
+  static void init();
+  static void resetAll();
+
+  static void setFreqMode(int32_t freq, uint8_t mode, uint8_t tx);
+
+  static void updateHardware();
+
+  static void setCwTone(int16_t cwTone);
+  static int16_t getCwTone();
+
+  static void setCwWpm(uint8_t wpm);
+  static uint8_t getCwWpm();
+  static uint16_t getCwSpeed();
+
+  static void setCwDelay(uint16_t cwDelay);
+  static uint16_t getCwDelay();
+
+  static void setCwKey(uint8_t cwKey);
+  static uint8_t getCwKey();
+
+  static void cwKeyDown();
+  static void cwKeyUp();
+
+  static void startCalibrate10M();
+  static void updateCalibrate10M();
+  static void stopCalibrate10M(bool save = true);
+
+  static void startCalibrateBfo();
+  static void updateCalibrateBfo();
+  static void stopCalibrateBfo(bool save = true);
+
+  static void loadSettings();
+  static void saveSettings();
+private:
+  static uint32_t _ssbBfo, _cwBfo;
+  static uint16_t _cwTone;
+  static uint8_t _cwWpm;
+  static uint16_t _cwSpeed;
+  static uint16_t _cwDelay;
+  static uint8_t _cwKey;
+
+  static int32_t _freq;
+  static uint8_t _mode, _tx;
+
+  static void setTxFilters(int32_t freq);
+};
+
+extern uint32_t usbCarrier;
+extern int32_t calibration;
+
+void si5351bx_setfreq(uint8_t clknum, uint32_t fout);
+void si5351_set_calibration(int32_t cal);
+void initOscillators();
 
 #endif // __RIG_H__

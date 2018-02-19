@@ -18,15 +18,15 @@
 
 #include <stdint.h>
 
-typedef void (*select_menu_func)(int8_t val);
-typedef void (*format_menu_func)(char *buf, const char *original_text, int8_t val);
-typedef int8_t (*get_menu_value_func)();
-typedef void (*format_menu_value_func)(char *buf, int8_t val);
-typedef int8_t (*get_next_menu_value_func)(int8_t val, bool forward);
+typedef bool (*select_menu_func)(int16_t val, bool selected);
+typedef void (*format_menu_func)(char *buf, const char *original_text, bool change_val, int16_t val);
+typedef int16_t (*get_menu_value_func)();
+typedef void (*format_menu_value_func)(char *buf, int16_t val);
+typedef int16_t (*get_next_menu_value_func)(int16_t val, bool forward);
 
 typedef struct {
   char text[10];
-  uint8_t submenu_count;
+  int16_t submenu_count;
   select_menu_func select_menu_f;
   format_menu_func format_menu_f;
   get_menu_value_func get_menu_value_f;
@@ -34,8 +34,11 @@ typedef struct {
   get_next_menu_value_func get_next_menu_value_f;
 } Menu_Item;
 
-extern const Menu_Item menu[];
-extern const uint8_t menu_item_count;
+extern const Menu_Item *menu;
+extern uint8_t menu_item_count;
+
+void active_main_menu();
+void active_system_menu();
 
 #endif // __MENU_H__
 

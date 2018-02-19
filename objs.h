@@ -21,6 +21,7 @@ class DisplayTask;
 class ButtonInputTask;
 class EncoderTask;
 class UiTask;
+class KeyerTask;
 class Rig;
 
 extern CatTask catTask;
@@ -29,6 +30,7 @@ extern ButtonInputTask fbuttonTask;
 extern ButtonInputTask pttTask;
 extern EncoderTask encoderTask;
 extern UiTask uiTask;
+extern KeyerTask keyerTask;
 extern Rig rig;
 
 #endif // __OBJS_H__

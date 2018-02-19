@@ -35,7 +35,12 @@ ButtonInputTask::ButtonInputTask(uint8_t pin) {
 
 void ButtonInputTask::init() {
   pinMode(_pin, INPUT_PULLUP);
+
   gotoState(BTN_WAIT_DOWN);
+}
+
+uint8_t ButtonInputTask::getRawState() {
+  return digitalRead(_pin);
 }
 
 bool ButtonInputTask::on_state_change(int8_t, int8_t) {
@@ -157,6 +162,7 @@ uint8_t EncoderTask::read_encoder() {
 #define MENU_NONE (FSM_STATE_USERDEF + 2)
 #define MENU_MAIN (FSM_STATE_USERDEF + 3)
 #define MENU_FREQ_ADJ_BASE (FSM_STATE_USERDEF + 4)
+#define MENU_SYSTEM (FSM_STATE_USERDEF + 5)
 
 #define FBTN_UP 0
 #define FBTN_DOWN 1
@@ -164,7 +170,9 @@ uint8_t EncoderTask::read_encoder() {
 #define FBTN_DOWN_LONG_LONG 3
 
 void UiTask::init() {
-  _menu_idx = _submenu_idx = 0;
+  _menu_idx = 0;
+  _menu_val = -1;
+  _menu_change_val = false;
 
   _last_fbutton_state = FBTN_UP;
 
@@ -172,7 +180,17 @@ void UiTask::init() {
   _tx_flashing_at = 0;
   _save_vfo_ch_at = millis();
 
+  rig.init();
+
   gotoState(MENU_WELCOME);
+}
+
+void UiTask::gotoSysMenu() {
+  _menu_idx = 0; _menu_val = -1; _menu_change_val = false;
+
+  displayTask.clear();
+  displayTask.print(0, 0, " System Menu... ");
+  delay(2000, MENU_SYSTEM);
 }
 
 bool UiTask::on_state_change(int8_t new_state, int8_t old_state) {
@@ -180,16 +198,28 @@ bool UiTask::on_state_change(int8_t new_state, int8_t old_state) {
 
   switch (new_state) {
   case MENU_WELCOME:
-    update_display(this);
-    delay(2000, MENU_NONE);
+    if (fbuttonTask.getRawState() == LOW) {
+      gotoSysMenu();
+    } else {
+      update_display(this);
+      delay(2000, MENU_NONE);
+    }
     break;
   case MENU_NONE:
     update_display(this);
     break;
   case MENU_MAIN:
-    if (old_state != MENU_MAIN) {
+  case MENU_SYSTEM:
+    if (new_state == MENU_SYSTEM) {
+      active_system_menu();
+      displayTask.clear1();
+    } else {
+      active_main_menu();
+    }
+    if (old_state != MENU_MAIN && old_state != MENU_SYSTEM) {
       _menu_idx = 0;
-      _submenu_idx = -1;
+      _menu_val = -1;
+      _menu_change_val = false;
     }
     update_display(this);
     break;
@@ -235,9 +265,33 @@ void UiTask::in_state(int8_t state) {
     }
   }
 
+  int8_t enc_val = encoderTask.get_value();
+  encoderTask.reset_value();
+
+  if (_last_fbutton_state != FBTN_UP) {
+    enc_val = 0;
+  }
+
+  // Calibrate?
+  if (state == MENU_SYSTEM) {
+    in_state_menu_main(fbtn_change, fbtn_from_state, enc_val);
+    return;
+  }
+
+  // ptt?
+  if (rig.getTxMode() == MODE_LSB || rig.getTxMode() == MODE_USB) {
+    if (pttTask.getButtonState() == HIGH && rig.getTx() == ON) {
+      rig.setTx(OFF);
+    }
+  
+    if (pttTask.getButtonState() == LOW && rig.getTx() == OFF) {
+      rig.setTx(ON);
+    }
+  }
+
   // TX?
   if (rig.getTx() == ON) {
-    if (_current_state != MENU_NONE) gotoState(MENU_NONE);
+    if (_current_state != MENU_NONE) gotoStateForce(MENU_NONE);
 
     if (_last_tx == OFF) {
       _tx_flashing_at = millis();
@@ -255,153 +309,192 @@ void UiTask::in_state(int8_t state) {
     rig.saveVfoCh();
     _save_vfo_ch_at = millis();
   }
-  
-  // Menu...
-  Menu_Item mi;
-  if (_current_state == MENU_MAIN) {
-    memcpy_P(&mi, &menu[_menu_idx], sizeof(mi));
+
+  // long long press --> dial lock and goto menu_none
+  if (fbtn_change && (_last_fbutton_state == FBTN_DOWN_LONG_LONG)) {
+    rig.setDialLock(rig.getDialLock() == ON ? OFF : ON);
+    gotoState(MENU_NONE);
+    return;
   }
 
+  switch (state) {
+  case MENU_NONE:
+    in_state_menu_none(fbtn_change, fbtn_from_state, enc_val);
+    break;
+  case MENU_MAIN:
+    in_state_menu_main(fbtn_change, fbtn_from_state, enc_val);
+    break;
+  case MENU_FREQ_ADJ_BASE:
+    in_state_menu_freq_adj_base(fbtn_change, fbtn_from_state, enc_val);
+    break;
+  default:
+    break;
+  }
+}
+
+void UiTask::in_state_menu_main(bool fbtn_change, uint8_t fbtn_from_state, int8_t enc_val) {
+  Menu_Item mi;
+  memcpy_P(&mi, &menu[_menu_idx], sizeof(mi));
+
+  if (fbtn_change) {
+    if (_last_fbutton_state == FBTN_UP && fbtn_from_state == FBTN_DOWN) {
+      if (mi.submenu_count != 0 && (!_menu_change_val)) {
+        if (mi.get_menu_value_f != NULL) {
+          _menu_val = (*mi.get_menu_value_f)();
+          _menu_change_val = true;
+        }
+
+        update_display(this);
+      } else {
+        if (mi.select_menu_f != NULL) {
+          if ((*mi.select_menu_f)(_menu_val, true)) {
+            gotoState(MENU_NONE);
+          } else {
+            _menu_val = -1;
+            _menu_change_val = false;
+
+            update_display(this);
+          }
+        } else {
+          gotoState(MENU_NONE);
+        }
+      }
+    } else if (_last_fbutton_state == FBTN_DOWN_LONG) {
+      if (_current_state == MENU_MAIN) gotoState(MENU_NONE);
+      else if (_current_state == MENU_SYSTEM) {
+        if (_menu_change_val) {
+          if (mi.select_menu_f != NULL) {
+            (*mi.select_menu_f)(_menu_val, false);
+          }
+          _menu_change_val = false;
+          _menu_val = -1;
+          update_display(this);
+        }
+      }
+    }
+  } else if (enc_val != 0) {
+    bool need_update = false;
+    int8_t d_idx = 0;
+  
+    if (enc_val > 1) {
+      d_idx = 1;
+    } else if (enc_val < -1) {
+      d_idx = -1;
+    }
+
+    if (enc_val != 0) {
+      if (!_menu_change_val) {
+        if (d_idx != 0) {
+          _menu_idx += d_idx;
+          if (_menu_idx >= menu_item_count) _menu_idx = menu_item_count - 1;
+          else if (_menu_idx < 0) _menu_idx = 0;
+          else need_update = true;
+        }
+      } else {
+        if (mi.get_next_menu_value_f != NULL) {
+          if (d_idx != 0) {
+            _menu_val = (*mi.get_next_menu_value_f)(_menu_val, d_idx > 0);
+          }
+        } else {
+          if (mi.submenu_count > 0) {
+            if (d_idx != 0) {
+              _menu_val += d_idx;
+  
+              if (_menu_val == mi.submenu_count) _menu_val = 0;
+              else if (_menu_val == -1) _menu_val = mi.submenu_count - 1;
+            }
+          } else if (mi.submenu_count == -1) {
+            int8_t times = enc_val >= 0 ? enc_val : -enc_val;
+            if (times < 3) times = 1;
+            else times -= 2;
+
+            _menu_val += (enc_val * times);
+          }
+        }
+        need_update = true;
+      }
+    }
+
+    if (need_update) {
+      update_display(this);
+      delay(400, _current_state);
+    }
+  }
+}
+
+void UiTask::in_state_menu_none(bool fbtn_change, uint8_t fbtn_from_state, int8_t enc_val) {
   if (fbtn_change) {
     if (_last_fbutton_state == FBTN_UP) {
-      if (_current_state == MENU_MAIN) {        
-        if (mi.submenu_count != 0 && _submenu_idx == -1) {
-          if (mi.get_menu_value_f != NULL) {
-            _submenu_idx = (*mi.get_menu_value_f)();
-          }
-
-          update_display(this);
-        } else {
-          if (mi.select_menu_f != NULL) {
-            (*mi.select_menu_f)(_submenu_idx);
-          }
-          gotoState(MENU_NONE);
-        }
-      } else if (_current_state == MENU_NONE) {
+      if (_current_state == MENU_NONE) {
         if (fbtn_from_state == FBTN_DOWN) {
           gotoState(MENU_MAIN);
-        }
-      } else if (_current_state == MENU_FREQ_ADJ_BASE) {
-        if (fbtn_from_state != FBTN_DOWN_LONG) {
-          gotoState(MENU_NONE);
         }
       }
     } else if (_last_fbutton_state == FBTN_DOWN_LONG) {
       if (_current_state == MENU_NONE && rig.isVfo()) {
         gotoState(MENU_FREQ_ADJ_BASE);
-      } else if (_current_state == MENU_MAIN) {
-        gotoState(MENU_NONE);
-      }
-    } else if (_last_fbutton_state == FBTN_DOWN_LONG_LONG) {
-      rig.setDialLock(rig.getDialLock() == ON ? OFF : ON);
-      gotoState(MENU_NONE);
-    }
-  }
-
-  int8_t enc_val = encoderTask.get_value();
-  encoderTask.reset_value();
-
-  if (_last_fbutton_state != FBTN_UP) {
-    enc_val = 0;
-  }
-
-  bool need_update = false;
-  int8_t d_idx = 0;
-
-  switch (state) {
-  case MENU_NONE:
-    if (rig.getDialLock() != ON && enc_val != 0) {
-      if (rig.isVfo()) {
-        int8_t times = enc_val > 0 ? enc_val : -enc_val;
-        if (times < 3) times = 1;
-        else times -= 2;
-
-        rig.setFreq(rig.getFreq() + enc_val * times * rig.getFreqAdjBase(), false);
-        update_display(this);
-      } else {
-        if (enc_val > 1) {
-          int8_t ch = rig.getNextMemOkCh(rig.getMemCh());
-          if (ch != -1) {
-            rig.selectMemCh(ch, false);
-            rig.selectMem(false);
-            need_update = true;
-          }
-        } else if (enc_val < -1) {
-          int8_t ch = rig.getPrevMemOkCh(rig.getMemCh());
-          if (ch != -1) {
-            rig.selectMemCh(ch, false);
-            rig.selectMem(false);
-            need_update = true;
-          }
-        }
-
-        if (need_update) {
-          update_display(this);
-          delay(400, MENU_NONE);
-        }
       }
     }
-    break;
+  } else if (enc_val != 0 && rig.getDialLock() != ON) {
+    if (rig.isVfo()) {
+      int8_t times = enc_val > 0 ? enc_val : -enc_val;
+      if (times < 3) times = 1;
+      else times -= 2;
 
-  case MENU_MAIN:
-    if (enc_val != 0) {
+      rig.setFreq(rig.getFreq() + enc_val * times * rig.getFreqAdjBase(), false);
+      update_display(this);
+    } else {
+      bool need_update = false;
+
       if (enc_val > 1) {
-        d_idx = 1;
+        int8_t ch = rig.getNextMemOkCh(rig.getMemCh());
+        if (ch != -1) {
+          rig.selectMemCh(ch, false);
+          rig.selectMem(false);
+          need_update = true;
+        }
       } else if (enc_val < -1) {
-        d_idx = -1;
-      }
-
-      if (d_idx != 0) {
-        if (_submenu_idx == -1) {
-          _menu_idx += d_idx;
-          if (_menu_idx >= menu_item_count) _menu_idx = menu_item_count - 1;
-          else if (_menu_idx < 0) _menu_idx = 0;
-          else need_update = true;
-        } else {
-          if (mi.get_next_menu_value_f != NULL) {
-            _submenu_idx = (*mi.get_next_menu_value_f)(_submenu_idx, d_idx > 0);
-          } else {
-            _submenu_idx += d_idx;
-            if (_submenu_idx == mi.submenu_count) _submenu_idx = 0;
-            else if (_submenu_idx == -1) _submenu_idx = mi.submenu_count - 1;
-          }
+        int8_t ch = rig.getPrevMemOkCh(rig.getMemCh());
+        if (ch != -1) {
+          rig.selectMemCh(ch, false);
+          rig.selectMem(false);
           need_update = true;
         }
       }
 
       if (need_update) {
         update_display(this);
-        delay(400, MENU_MAIN);
+        delay(400, MENU_NONE);
       }
     }
-    break;
+  }
+}
 
-  case MENU_FREQ_ADJ_BASE:
-    if (enc_val != 0) {
-      int32_t base = rig.getFreqAdjBase();
+void UiTask::in_state_menu_freq_adj_base(bool fbtn_change, uint8_t fbtn_from_state, int8_t enc_val) {
+  if (fbtn_change && _last_fbutton_state == FBTN_UP && fbtn_from_state != FBTN_DOWN_LONG) {
+    gotoState(MENU_NONE);
+  } else if (enc_val != 0) {
+    bool need_update = false;
+    int32_t base = rig.getFreqAdjBase();
 
-      if (enc_val > 1) {
-        if (base > 10) {
-          base /= 10;
-          rig.setFreqAdjBase(base);
-          need_update = true;
-        }
-      } else if (enc_val < -1) {
-        if (base < 1000000) {
-          base *= 10;
-          rig.setFreqAdjBase(base);
-          need_update = true;
-        }
+    if (enc_val > 1) {
+      if (base > 10) {
+        base /= 10;
+        rig.setFreqAdjBase(base);
+        need_update = true;
       }
-
-      if (need_update) {
-        update_display(this);
-        delay(400, MENU_FREQ_ADJ_BASE);
+    } else if (enc_val < -1) {
+      if (base < 1000000) {
+        base *= 10;
+        rig.setFreqAdjBase(base);
+        need_update = true;
       }
     }
-    break;
-  default:
-    break;
+
+    if (need_update) {
+      update_display(this);
+      delay(400, MENU_FREQ_ADJ_BASE);
+    }
   }
 }
 
@@ -415,6 +508,10 @@ void UiTask::update_display(void */*sender*/) {
   case MENU_MAIN:
     displayTask.clear();
     update_rig_display();
+    update_menu_display();
+    break;
+  case MENU_SYSTEM:
+    displayTask.clear0();
     update_menu_display();
     break;
   case MENU_FREQ_ADJ_BASE:
@@ -467,9 +564,9 @@ void UiTask::update_rig_display() {
 }
 
 void UiTask::update_menu_display() {
-  char menu_text[12], menu_value_text[6], menu_fulltext[14];
+  char menu_text[15], menu_value_text[13], menu_fulltext[15];
   char n = ' ';
-  int8_t v = _submenu_idx;
+  int16_t v = _menu_val;
 
   Menu_Item mi;
   memcpy_P(&mi, &menu[_menu_idx], sizeof(mi));
@@ -481,32 +578,32 @@ void UiTask::update_menu_display() {
   }
 
   if (mi.format_menu_f != NULL) {
-    (*mi.format_menu_f)(menu_text, mi.text, _submenu_idx);
+    (*mi.format_menu_f)(menu_text, mi.text, _menu_change_val, _menu_val);
   } else {
     sprintf(menu_text, mi.text);
   }
 
-  if (v == -1 && mi.get_menu_value_f != NULL) {
+  if (!_menu_change_val && mi.get_menu_value_f != NULL) {
     v = (*mi.get_menu_value_f)();
   }
 
-  if (mi.format_menu_value_f != NULL) {
-    (*mi.format_menu_value_f)(menu_value_text, v);
-  } else {
-    sprintf(menu_value_text, "%02d", v);
-  }
-
-  if ((mi.submenu_count == 0) || ((_submenu_idx == -1) && (mi.format_menu_f != NULL))) {
+  if ((mi.submenu_count == 0) || ((!_menu_change_val) && (mi.format_menu_f != NULL))) {
     sprintf(menu_fulltext, "%c.%s", n, menu_text);
   } else {
-    if (_submenu_idx == -1) {
-      sprintf(menu_fulltext, "%c.%s: %s", n, menu_text, menu_value_text);
+    if (mi.format_menu_value_f != NULL) {
+      (*mi.format_menu_value_f)(menu_value_text, v);
     } else {
-      sprintf(menu_fulltext, "%c.%s:\x01%s\x02", n, menu_text, menu_value_text);
+      sprintf(menu_value_text, "%02d", v);
+    }
+  
+    if (!_menu_change_val) {
+      sprintf(menu_fulltext, "%c.%s:%s", n, menu_text, menu_value_text);
+    } else {
+      sprintf(menu_fulltext, "%c.%s[%s]", n, menu_text, menu_value_text);
     }
   }
 
-  displayTask.print0("                "); // clear the first line
+  displayTask.clear0();
   displayTask.print0(menu_fulltext);
 }
 

@@ -28,6 +28,8 @@ public:
 
   uint8_t getButtonState();
   unsigned long getButtonPressAt();
+
+  uint8_t getRawState();
 private:
   uint8_t _pin;
   uint8_t _state;
@@ -61,12 +63,15 @@ public:
   virtual void in_state(int8_t);
 
   void update_display(void *);
+  void gotoSysMenu();
 private:
   int8_t _current_state;
 
   uint8_t _last_fbutton_state;
 
-  int8_t _menu_idx, _submenu_idx;
+  int8_t _menu_idx;
+  bool _menu_change_val;
+  int16_t _menu_val;
 
   uint8_t _last_tx;
   unsigned long _tx_flashing_at;
@@ -77,6 +82,10 @@ private:
   void update_freq_adj_base();
 
   void format_mode(char *, uint8_t);
+
+  void in_state_menu_none(bool fbtn_change, uint8_t fbtn_from_state, int8_t enc_val);
+  void in_state_menu_main(bool fbtn_change, uint8_t fbtn_from_state, int8_t enc_val);
+  void in_state_menu_freq_adj_base(bool fbtn_change, uint8_t fbtn_from_state, int8_t enc_val);
 };
 
 #endif // __UI_TASKS_H__

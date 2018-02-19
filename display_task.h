@@ -35,6 +35,14 @@ public:
     memset(_buf, ' ', 32);
   };
 
+  void clear0() {
+    memset(&(_buf[0][0]), ' ', 16);
+  };
+
+  void clear1() {
+    memset(&(_buf[1][0]), ' ', 16);
+  };
+
   void print0(const char *str) { print(0, str); };
   void print1(const char *str) { print(1, str); };
   void print(uint8_t row, const char *str) { print(0, row, str); };

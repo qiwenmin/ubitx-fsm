@@ -48,6 +48,8 @@ enum CatState {
 class CatTask : public FsmTask {
 public:
   virtual void init() {
+    _disabled = false;
+
     Serial.begin(19200, SERIAL_8N1);
     Serial.flush();
     this->gotoState(CAT_FRAME_BEGIN);
@@ -89,10 +91,15 @@ public:
     }
   };
 
+  void setDisabled(bool disabled) {
+    _disabled = disabled;
+  };
+
 private:
   uint8_t _buf_pos;
   byte _buf[BUF_SIZE * 2]; // for request and for response
   uint8_t _sent_pos;
+  bool _disabled;
 
   void readFrameBegin() {
     while (Serial.available()) {
@@ -149,6 +156,11 @@ private:
   };
 
   void execCmd() {
+    if (_disabled) {
+      sendNg();
+      return;
+    }
+
     switch (CMD(_buf[4])) {
     case 0x00: // set freq - no resp
       break;
