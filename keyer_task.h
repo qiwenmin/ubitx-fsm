@@ -83,7 +83,7 @@ public:
         case ET_IDLE:
           if (cwKey == CW_KEY_IAMBIC_B_L || cwKey == CW_KEY_IAMBIC_B_R) {
             // Iambic B
-            if (k == PADDLE_NONE) {
+            if (_next_key != PADDLE_NONE) {
               k = _next_key;
             }
           }
