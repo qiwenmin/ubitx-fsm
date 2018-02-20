@@ -866,7 +866,7 @@ void Rig::serialSetup() {
         eeprom_write_callsign_ch(i, buf[i]);
       }
     } else if (buf[0] == '2') {
-      Serial.print(F("\nInput Autokey text: "));
+      Serial.print(F("\n\nInput Autokey text: "));
       if (serialReadString(buf, 64)) {
         i = 0;
 
