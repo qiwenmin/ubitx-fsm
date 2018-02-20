@@ -133,8 +133,12 @@ public:
   uint8_t getItuRegion();
 
   void getAutokeyTextCh(uint8_t idx, char &ch);
+  void getCallsign(char *callsign);
 
-  
+  bool writeEepromBcd(uint16_t addr, uint8_t len, const uint8_t *data);
+  bool readEepromBcd(uint16_t addr, uint8_t len, uint8_t *data);
+
+  void serialSetup();
 private:
   uint8_t _tx;
   uint8_t _dial_lock;

@@ -201,7 +201,7 @@ bool UiTask::on_state_change(int8_t new_state, int8_t old_state) {
   switch (new_state) {
   case MENU_WELCOME:
     if (fbuttonTask.getRawState() == LOW) {
-      gotoSysMenu();
+      rig.serialSetup();
     } else {
       update_display(this);
       delay(2000, MENU_NONE);
@@ -510,11 +510,21 @@ void UiTask::in_state_menu_freq_adj_base(bool fbtn_change, uint8_t fbtn_from_sta
 }
 
 void UiTask::update_display(void */*sender*/) {
+  char callsign[16];
+
   switch (_current_state) {
   case MENU_WELCOME:
     displayTask.clear();
-    displayTask.print0("=[ uBitx  FMS ]=");
-    displayTask.print1("     v." FW_VERSION "     ");
+    rig.getCallsign(callsign);
+    if (callsign[0] != 0) {
+      displayTask.print0("uBitx FMS v." FW_VERSION);
+      uint8_t x = (16 - strlen(callsign)) / 2;
+      displayTask.clear1();
+      displayTask.print(x, 1, callsign);
+    } else {
+      displayTask.print0("=[ uBitx  FMS ]=");
+      displayTask.print1("     v." FW_VERSION "     ");
+    }
     break;
   case MENU_MAIN:
     displayTask.clear();

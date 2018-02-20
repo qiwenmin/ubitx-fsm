@@ -217,6 +217,9 @@ private:
     case 0x1C: // transmit on / off
       transmitOnOff();
       break;
+    case 0x7F: // ubitx own command
+      ubitxCmd();
+      break;
     default:
       sendNg();
       break;
@@ -514,6 +517,55 @@ private:
       sendNg();
     }
   };
+
+  void ubitxCmd() {
+    // 05 06 07      08      09             10 + LEN * 3
+    // F5 05 ADDR_HI ADDR_LO LEN {CONTENTS} FEC
+    // Contents is in BCD
+    // BUF_SIZE is 64. So the max of LEN is ((64 - 22) / 2) = 21
+    // we choose 16 as the max length
+
+    if (_buf[5] == 0xF5 && _buf[6] == 0x05) { // $F505 - magic number
+      uint16_t addr = 0;
+      addr += (_buf[7] & 0x0F) * 100;
+      addr += (_buf[8] >> 4) * 10;
+      addr += (_buf[8] & 0x0F);
+      uint8_t len = _buf[9];
+
+      bool isRead = _buf[10] == FEC;
+
+      if (isRead) { // read eeprom
+        if (rig.readEepromBcd(addr, len, _buf + 21)) {
+          _buf[_buf_pos ++] = FBC;
+          _buf[_buf_pos ++] = FBC;
+          _buf[_buf_pos ++] = _buf[3];
+          _buf[_buf_pos ++] = _buf[2];
+          _buf[_buf_pos ++] = _buf[4];
+          _buf[_buf_pos ++] = _buf[5];
+          _buf[_buf_pos ++] = _buf[6];
+          _buf[_buf_pos ++] = _buf[7];
+          _buf[_buf_pos ++] = _buf[8];
+          _buf[_buf_pos ++] = _buf[9];
+
+          _buf_pos += (len * 2);
+
+          _buf[_buf_pos ++] = FEC;
+
+          gotoState(CAT_SEND_RESP);
+        } else {
+          sendNg();
+        }
+      } else { // write eeprom
+        if (rig.writeEepromBcd(addr, len, _buf + 10)) {
+          sendOk();
+        } else {
+          sendNg();
+        }
+      }
+    } else {
+      sendNg();
+    }
+  }
 
   void freq2bcd(int32_t freq, byte *bcd) {
     uint8_t lo, hi;

@@ -18,6 +18,8 @@
 #include <EEPROM.h>
 #pragma GCC diagnostic pop
 
+#include <LiquidCrystal.h>
+
 #include "rig.h"
 #include "version.h"
 
@@ -78,13 +80,16 @@ static bool in_ham_band_range(uint8_t rgn, int32_t freq) {
 #define ADDR_MEM_CH_IDX (0x0006)
 #define ADDR_FREQ_ADJ_BASE (0x0007)
 
-#define ADDR_CW_TONE (0x000B)
-#define ADDR_CW_WPM (0x000C)
-#define ADDR_CW_DELAY (0x000D)
-#define ADDR_CW_KEY (0x000E)
-#define ADDR_ITU_RGN (0x000F)
+#define ADDR_CW_TONE (0x0008)
+#define ADDR_CW_WPM (0x0009)
+#define ADDR_CW_DELAY (0x000A)
+#define ADDR_CW_KEY (0x000B)
+#define ADDR_ITU_RGN (0x000C)
 
-// 0x0010 - 0x003F reserved
+// 0x000D - 0x002F reserved
+
+#define ADDR_CALLSIGN (0X0030)
+#define ADDR_CALLSIGN_LEN (0x0010)
 
 #define ADDR_AUTOKEY_TEXT (0x0040)
 #define ADDR_AUTOKEY_TEXT_LEN (0x0040)
@@ -99,6 +104,8 @@ static bool in_ham_band_range(uint8_t rgn, int32_t freq) {
 #define ADDR_MEM_CH_BEGIN (0x0100)  // MEM: 0x0100 ~ 0x02FF
 
 // 0x0300 - 0x03FF reserved
+
+#define EEPROM_SIZE (0x0400) // 1K
 
 inline bool eeprom_ok() {
   uint16_t n = 0;
@@ -242,6 +249,18 @@ void eeprom_read_itu_rgn(uint8_t &rgn) {
   if (rgn > 3) rgn = 3;
 }
 
+void eeprom_write_callsign_ch(uint8_t offset, char ch) {
+  if (offset < ADDR_CALLSIGN_LEN) {
+    EEPROM.put(ADDR_CALLSIGN + offset, ch);
+  }
+}
+
+void eeprom_read_callsign_ch(uint8_t offset, char &ch) {
+  if (offset < ADDR_CALLSIGN_LEN) {
+    EEPROM.get(ADDR_CALLSIGN + offset, ch);
+  }
+}
+
 void eeprom_write_autokey_text_ch(uint8_t offset, char ch) {
   if (offset < ADDR_AUTOKEY_TEXT_LEN) {
     EEPROM.put(ADDR_AUTOKEY_TEXT + offset, ch);
@@ -369,6 +388,7 @@ void Rig::resetAll() {
   eeprom_write_itu_rgn(_rgn);
 
   char ch = 0;
+  eeprom_write_callsign_ch(0, ch);
   eeprom_write_autokey_text_ch(0, ch);
 
   eeprom_write_vfos(_vfo_ch);
@@ -732,6 +752,131 @@ void Rig::getAutokeyTextCh(uint8_t idx, char &ch) {
     eeprom_read_autokey_text_ch(idx, ch);
   } else {
     ch = 0;
+  }
+}
+
+void Rig::getCallsign(char *callsign) {
+  for (uint8_t i = 0; i < ADDR_CALLSIGN_LEN; i ++) {
+    eeprom_read_callsign_ch(i, callsign[i]);
+  }
+}
+
+static const uint8_t eeprom_rw_bcd_max_len = 16;
+
+bool Rig::writeEepromBcd(uint16_t addr, uint8_t len, const uint8_t *data) {
+  if (addr >= EEPROM_SIZE || len > eeprom_rw_bcd_max_len || (addr + len) > EEPROM_SIZE) return false;
+
+  for (uint8_t i = 0; i < len; i ++) {
+    uint8_t val = 0;
+    val += (data[i * 2] & 0x0F) * 100;
+    val += (data[i * 2 + 1] >> 4) * 10;
+    val += (data[i * 2 + 1] & 0x0F);
+
+    EEPROM.put(addr + i, val);
+  }
+
+  return true;
+}
+
+bool Rig::readEepromBcd(uint16_t addr, uint8_t len, uint8_t *data) {
+  if (addr >= EEPROM_SIZE || len > eeprom_rw_bcd_max_len || (addr + len) > EEPROM_SIZE) return false;
+
+  for (uint8_t i = 0; i < len; i ++) {
+    uint8_t val = 0;
+    EEPROM.get(addr + i, val);
+
+    data[i * 2] = (val / 100);
+    data[i * 2 + 1] = (((val % 100) / 10) << 4) + (val % 10);
+  }
+
+  return true;
+}
+
+extern LiquidCrystal lcd;
+
+// len - with the tail zero
+static bool serialReadString(char *buf, uint8_t len) {
+  uint8_t i = 0;
+  while (i < len - 1) {
+    while (Serial.available() == 0) ;
+    char ch = Serial.read();
+    if (ch == 0x0a) {
+      buf[i] = 0;
+      break;
+    } else if (ch == '\b') {
+      if (i > 0) {
+        i --;
+        Serial.print(ch);
+      }
+    } else if (ch == 0x03) {
+      // CTRL+C
+      return false;
+    } else {
+      if (ch >= 0x20) {
+        buf[i] = ch;
+        Serial.print(ch);
+        i ++;
+      }
+    }
+  }
+
+  buf[len - 1] = 0;
+
+  return true;
+}
+
+void Rig::serialSetup() {
+  lcd.setCursor(0, 0);
+  lcd.print(F("Setup via Serial"));
+
+  for (;;) {
+    char ch;
+    char buf[64];
+    uint8_t i;
+
+    Serial.flush();
+
+    Serial.print(F("\n\n1. Callsign: "));
+    for (i = 0; i < ADDR_CALLSIGN_LEN; i ++) {
+      eeprom_read_callsign_ch(i, ch);
+      if (ch == 0) break;
+
+      Serial.print(ch);
+    }
+
+    Serial.print(F("\n2. Autokey Text: "));
+    for (i = 0; i < ADDR_AUTOKEY_TEXT_LEN; i ++) {
+      eeprom_read_autokey_text_ch(i, ch);
+      if (ch == 0) break;
+
+      Serial.print(ch);
+    }
+    Serial.print(F("\n\nPower off the uBitx when done. Choose [1, 2]: "));
+
+    serialReadString(buf, 2);
+    if (buf[0] == '1') {
+      Serial.print(F("\n\nInput Callsign: "));
+      if (serialReadString(buf, 16)) {
+        i = 0;
+
+        while (buf[i] != 0) {
+          eeprom_write_callsign_ch(i, buf[i]);
+          i ++;
+        }
+        eeprom_write_callsign_ch(i, buf[i]);
+      }
+    } else if (buf[0] == '2') {
+      Serial.print(F("\nInput Autokey text: "));
+      if (serialReadString(buf, 64)) {
+        i = 0;
+
+        while (buf[i] != 0) {
+          eeprom_write_autokey_text_ch(i, buf[i]);
+          i ++;
+        }
+        eeprom_write_autokey_text_ch(i, buf[i]);
+      }
+    }
   }
 }
 
