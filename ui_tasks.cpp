@@ -283,7 +283,7 @@ void UiTask::in_state(int8_t state) {
     if (pttTask.getButtonState() == HIGH && rig.getTx() == ON) {
       rig.setTx(OFF);
     }
-  
+
     if (pttTask.getButtonState() == LOW && rig.getTx() == OFF) {
       rig.setTx(ON);
     }
@@ -384,7 +384,7 @@ void UiTask::in_state_menu_main(bool fbtn_change, uint8_t fbtn_from_state, int8_
   } else if (enc_val != 0) {
     bool need_update = false;
     int8_t d_idx = 0;
-  
+
     if (enc_val > 1) {
       d_idx = 1;
     } else if (enc_val < -1) {
@@ -408,7 +408,7 @@ void UiTask::in_state_menu_main(bool fbtn_change, uint8_t fbtn_from_state, int8_
           if (mi.submenu_count > 0) {
             if (d_idx != 0) {
               _menu_val += d_idx;
-  
+
               if (_menu_val == mi.submenu_count) _menu_val = 0;
               else if (_menu_val == -1) _menu_val = mi.submenu_count - 1;
             }
@@ -614,7 +614,7 @@ void UiTask::update_menu_display() {
     } else {
       sprintf(menu_value_text, "%02d", v);
     }
-  
+
     if (!_menu_change_val) {
       sprintf(menu_fulltext, "%c.%s:%s", n, menu_text, menu_value_text);
     } else {

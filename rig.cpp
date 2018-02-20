@@ -1095,7 +1095,7 @@ void Device::startCalibrate10M() {
 
   si5351bx_setfreq(0, 0);
   si5351bx_setfreq(1, 0);
-  si5351bx_setfreq(2, 10000000L); 
+  si5351bx_setfreq(2, 10000000L);
 
   digitalWrite(CW_KEY, 1);
 }
@@ -1138,10 +1138,10 @@ void Device::stopCalibrateBfo(bool save) {
     if (mode == MODE_CW || mode == MODE_CWR) {
       eeprom_write_cw_bfo(Device::_cwBfo);
     } else {
-      eeprom_write_ssb_bfo(Device::_ssbBfo);      
+      eeprom_write_ssb_bfo(Device::_ssbBfo);
     }
   }
-  
+
   Device::updateHardware();
 }
 
@@ -1149,12 +1149,12 @@ void Device::stopCalibrateBfo(bool save) {
  * Select the properly tx harmonic filters
  * The four harmonic filters use only three relays
  * the four LPFs cover 30-21 Mhz, 18 - 14 Mhz, 7-10 MHz and 3.5 to 5 Mhz
- * Briefly, it works like this, 
+ * Briefly, it works like this,
  * - When KT1 is OFF, the 'off' position routes the PA output through the 30 MHz LPF
  * - When KT1 is ON, it routes the PA output to KT2. Which is why you will see that
  *   the KT1 is on for the three other cases.
  * - When the KT1 is ON and KT2 is off, the off position of KT2 routes the PA output
- *   to 18 MHz LPF (That also works for 14 Mhz) 
+ *   to 18 MHz LPF (That also works for 14 Mhz)
  * - When KT1 is On, KT2 is On, it routes the PA output to KT3
  * - KT3, when switched on selects the 7-10 Mhz filter
  * - KT3 when switched off selects the 3.5-5 Mhz filter

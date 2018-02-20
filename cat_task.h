@@ -132,7 +132,7 @@ private:
         gotoState(CAT_DATA_END);
         break;
       }
-    }    
+    }
   };
 
   void readDataAndEnd() {
@@ -146,7 +146,7 @@ private:
         gotoState(CAT_EXEC_CMD);
         break;
       }
-      
+
       if (_buf_pos == BUF_SIZE) {
         // frame is too long!
         gotoState(CAT_FRAME_BEGIN);
@@ -485,15 +485,15 @@ private:
         _buf[_buf_pos ++] = _buf[2];
         _buf[_buf_pos ++] = _buf[4];
         _buf[_buf_pos ++] = _buf[5];
-    
+
         _buf[_buf_pos ++] = rig.getTx();
         _buf[_buf_pos ++] = FEC;
-    
-        gotoState(CAT_SEND_RESP);    
+
+        gotoState(CAT_SEND_RESP);
       }
     } else  {
       sendNg();
-    }    
+    }
   };
 
   void do1aCmd() {
