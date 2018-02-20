@@ -21,6 +21,56 @@
 #include "rig.h"
 #include "version.h"
 
+//#define ITU_REGION_1
+//#define ITU_REGION_2
+#define ITU_REGION_3
+//#define ITU_REGION_ALL
+
+// https://en.wikipedia.org/wiki/WARC_bands
+const uint16_t ham_band_range[10][2] PROGMEM = {
+#if defined(ITU_REGION_1)
+  { 1800, 1850 },
+#elif defined(ITU_REGION_2) || defined(ITU_REGION_3) || defined(ITU_REGION_ALL)
+  { 1800, 2000 },
+#endif
+
+#if defined(ITU_REGION_1)
+  { 3500, 3800 },
+#elif defined(ITU_REGION_2) || defined(ITU_REGION_ALL)
+  { 3500, 4000 },
+#elif defined(ITU_REGION_3)
+  { 3500, 3900 },
+#endif
+
+  { 5351, 5367 },
+
+#if defined(ITU_REGION_1) || defined(ITU_REGION_3)
+  { 7000, 7200 },
+#elif defined(ITU_REGION_2) || defined(ITU_REGION_ALL)
+  { 7000, 7300 },
+#endif
+
+  { 10100, 10150 },
+  { 14000, 14350 },
+  { 18068, 18168 },
+  { 21000, 21450 },
+  { 24890, 24990 },
+  { 28000, 29700 }
+};
+
+#define HAM_BAND_RANGE_LEN (10)
+
+static bool in_ham_band_range(int32_t freq) {
+  uint16_t fk = (freq / 1000);
+  for (uint8_t i = 0; i < HAM_BAND_RANGE_LEN; i ++) {
+    uint16_t fr[2];
+    memcpy_P(fr, &ham_band_range[i][0], sizeof(fr));
+    if (fr[0] <= fk && fk < fr[1]) return true;
+  }
+
+  return false;
+}
+
 #define EEPROM_MAGIC_NUMBER (0xF505)
 #define EEPROM_VERSION_NO (1)
 #define CHANNEL_SIZE (0x0010)
@@ -388,6 +438,9 @@ uint8_t Rig::getModeAnother() {
 
 void Rig::setTx(uint8_t tx) {
   if ((tx == ON || tx == OFF) && (tx != _tx)) {
+
+    if (tx == ON && (!in_ham_band_range(getTxFreq()))) return;
+
     _tx = tx;
 
     digitalWrite(LED_BUILTIN, tx == ON ? HIGH : LOW);
