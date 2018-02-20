@@ -169,7 +169,7 @@ private:
       _next_key = PADDLE_NONE;
       k = paddle_key;
     }
-    
+
     if (cwKey== CW_KEY_STRAIGHT) {
       if (!_is_key_down) {
         if (k == PADDLE_DOT || k == PADDLE_BOTH || k == PADDLE_STRAIGHT) {
@@ -263,7 +263,7 @@ private:
       }
       return;
     }
-    
+
     if (getPaddle() != PADDLE_NONE) {
       if (_is_key_down) keyUp();
 
@@ -338,7 +338,7 @@ private:
 
     char ch;
     int8_t m_idx;
-  
+
     switch (_sending_state) {
     case SS_IDLE:
       rig.getAutokeyTextCh(_sending_ch_idx, ch);
@@ -349,9 +349,9 @@ private:
         _sending_ch_idx = 0;
         setAutoTextMode(false);
       } else {
-  
+
         if (ch >= 'a' && ch <= 'z') ch = ch - 'a' + 'A';
-  
+
         m_idx = -1;
         if (ch >= '!' && ch <= 'Z') {
           m_idx = ch - '!';
@@ -396,7 +396,7 @@ private:
       if (millis() - _element_at >= Device::getCwSpeed() * 4) {
         _sending_state = SS_IDLE;
       }
-      break;    
+      break;
     default:
       break;
     }

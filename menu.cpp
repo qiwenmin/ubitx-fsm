@@ -47,19 +47,19 @@ bool select_menu_mode(int16_t val, bool selected) {
 void format_menu_value_mode(char *buf, int16_t val) {
   switch (val) {
   case 0:
-    sprintf(buf, "CW ");
+    strcpy_P(buf, PSTR("CW "));
     break;
   case 1:
-    sprintf(buf, "CWR");
+    strcpy_P(buf, PSTR("CWR"));
     break;
   case 2:
-    sprintf(buf, "LSB");
+    strcpy_P(buf, PSTR("LSB"));
     break;
   case 3:
-    sprintf(buf, "USB");
+    strcpy_P(buf, PSTR("USB"));
     break;
   default:
-    sprintf(buf, "N/A");
+    strcpy_P(buf, PSTR("N/A"));
     break;
   }
 }
@@ -106,7 +106,7 @@ bool select_menu_split(int16_t, bool) {
 }
 
 void format_menu_split(char *buf, const char *, bool, int16_t) {
-  sprintf(buf, "Split %s", rig.getSplit() == ON ? "OFF" : "ON");
+  strcpy_P(buf, rig.getSplit() == ON ? PSTR("Split OFF") : PSTR("Split ON"));
 }
 
 // menu V/M
@@ -281,19 +281,19 @@ int16_t get_menu_value_cw_key() {
 void format_menu_value_cw_key(char *buf, int16_t val) {
   switch(val) {
   case CW_KEY_STRAIGHT:
-    sprintf(buf, "STRAIGHT ");
+    strcpy_P(buf, PSTR("STRAIGHT "));
     break;
   case CW_KEY_IAMBIC_A_L:
-    sprintf(buf, "IAMBIC AL");
+    strcpy_P(buf, PSTR("IAMBIC AL"));
     break;
   case CW_KEY_IAMBIC_A_R:
-    sprintf(buf, "IAMBIC AR");
+    strcpy_P(buf, PSTR("IAMBIC AR"));
     break;
   case CW_KEY_IAMBIC_B_L:
-    sprintf(buf, "IAMBIC BL");
+    strcpy_P(buf, PSTR("IAMBIC BL"));
     break;
   case CW_KEY_IAMBIC_B_R:
-    sprintf(buf, "IAMBIC BR");
+    strcpy_P(buf, PSTR("IAMBIC BR"));
     break;
   default:
     sprintf(buf, "N/A");
@@ -329,16 +329,16 @@ bool select_menu_10m(int16_t /*val*/, bool selected) {
   Device::stopCalibrate10M(selected);
 
   displayTask.clear1();
-  displayTask.print1(selected ? "Cali Done!" : "Cancalled!");
+  displayTask.print1(selected ? F("Cali Done!") : F("Cancalled!"));
 
   return false;
 }
 
 void format_menu_10m(char *buf, const char */*original_text*/, bool change_val, int16_t) {
   if (!change_val) {
-    sprintf(buf, "10MHz Calibrat");
+    strcpy_P(buf, PSTR("10MHz Calibrat"));
   } else {
-    sprintf(buf, "Cali");
+    strcpy_P(buf, PSTR("Cali"));
   }
 }
 
@@ -357,7 +357,7 @@ void format_menu_value_10m(char *buf, int16_t val) {
     Device::startCalibrate10M();
 
     displayTask.clear1();
-    displayTask.print1("Calibrating");
+    displayTask.print1(F("Calibrating"));
   } else {
     char msg[17];
 
@@ -378,16 +378,16 @@ bool select_menu_bfo(int16_t /*val*/, bool selected) {
   Device::stopCalibrateBfo(selected);
 
   displayTask.clear1();
-  displayTask.print1(selected ? "Cali Done!" : "Cancalled!");
+  displayTask.print1(selected ? F("Cali Done!") : F("Cancalled!"));
 
   return false;
 }
 
 void format_menu_bfo(char *buf, const char */*original_text*/, bool change_val, int16_t) {
   if (!change_val) {
-    sprintf(buf, "BFO Calibrate");
+    strcpy_P(buf, PSTR("BFO Calibrate"));
   } else {
-    sprintf(buf, "BFO");
+    strcpy_P(buf, PSTR("BFO"));
   }
 }
 
@@ -406,7 +406,7 @@ void format_menu_value_bfo(char *buf, int16_t val) {
     Device::startCalibrateBfo();
 
     displayTask.clear1();
-    displayTask.print1("Calibrating");
+    displayTask.print1(F("Calibrating"));
   } else {
     char msg[17];
 

@@ -44,8 +44,11 @@ public:
   };
 
   void print0(const char *str) { print(0, str); };
+  void print0(const __FlashStringHelper *str) { print(0, str); };
   void print1(const char *str) { print(1, str); };
+  void print1(const __FlashStringHelper *str) { print(1, str); };
   void print(uint8_t row, const char *str) { print(0, row, str); };
+  void print(uint8_t row, const __FlashStringHelper *str) { print(0, row, str); };
   void print(uint8_t col, uint8_t row, const char *str) {
     uint8_t c = col & 0x0F;
     uint8_t r = row & 0x01;
@@ -59,9 +62,25 @@ public:
     }
   };
 
+  void print(uint8_t col, uint8_t row, const __FlashStringHelper *str) {
+    uint8_t c = col & 0x0F;
+    uint8_t r = row & 0x01;
+    PGM_P p = reinterpret_cast<PGM_P>(str);
+
+    for (uint8_t i = c; i < 16; i ++) {
+      char ch = pgm_read_byte(&p[i - c]);
+
+      if (ch != '\0') {
+        _buf[r][i] = ch;
+      } else {
+        break;
+      }
+    }
+  };
+
   void print(uint8_t col, uint8_t row, char ch) {
     _buf[row & 0x01][col & 0x0F] = ch;
-  }
+  };
 
 private:
   char _buf[2][16];

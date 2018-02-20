@@ -13,8 +13,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <avr/pgmspace.h>
-
 #include "ui_tasks.h"
 #include "menu.h"
 #include "version.h"
@@ -191,7 +189,7 @@ void UiTask::gotoSysMenu() {
   _menu_idx = 0; _menu_val = -1; _menu_change_val = false;
 
   displayTask.clear();
-  displayTask.print(0, 0, " System Menu... ");
+  displayTask.print(0, 0, F(" System Menu... "));
   delay(2000, MENU_SYSTEM);
 }
 
@@ -517,13 +515,13 @@ void UiTask::update_display(void */*sender*/) {
     displayTask.clear();
     rig.getCallsign(callsign);
     if (callsign[0] != 0) {
-      displayTask.print0("uBitx FMS v." FW_VERSION);
+      displayTask.print0(F("uBitx FMS v." FW_VERSION));
       uint8_t x = (16 - strlen(callsign)) / 2;
       displayTask.clear1();
       displayTask.print(x, 1, callsign);
     } else {
-      displayTask.print0("=[ uBitx  FMS ]=");
-      displayTask.print1("     v." FW_VERSION "     ");
+      displayTask.print0(F("=[ uBitx  FMS ]="));
+      displayTask.print1(F("     v." FW_VERSION "     "));
     }
     break;
   case MENU_MAIN:
@@ -567,7 +565,7 @@ void UiTask::update_rig_display() {
   displayTask.print(4, 0, _buf);
 
   // SPLIT?
-  displayTask.print(2, 0, rig.getSplit() == ON ? "S" : " ");
+  displayTask.print(2, 0, rig.getSplit() == ON ? F("S") : F(" "));
 
   // Lock?
   displayTask.print(0, 0, rig.getDialLock() == ON ? '\x00' : ' ');
@@ -578,10 +576,10 @@ void UiTask::update_rig_display() {
   displayTask.print(0, 1, rig.isVfo() ? "V-" : _buf);
 
   // VFO A? B?
-  displayTask.print(2, 1, rig.getVfo() == VFO_A ? "A" : "B");
+  displayTask.print(2, 1, rig.getVfo() == VFO_A ? F("A") : F("B"));
 
   // TX?
-  displayTask.print(0, 0, rig.getTx() == ON ? "\x03\x04" : "");
+  displayTask.print(0, 0, rig.getTx() == ON ? F("\x03\x04") : F(""));
 }
 
 void UiTask::update_menu_display() {
@@ -629,7 +627,7 @@ void UiTask::update_menu_display() {
 }
 
 void UiTask::update_freq_adj_base() {
-  displayTask.print(8, 0, "        ");
+  displayTask.print(8, 0, F("        "));
 
   uint8_t p = 10;
 
@@ -648,19 +646,19 @@ void UiTask::update_freq_adj_base() {
 void UiTask::format_mode(char *output, uint8_t mode) {
   switch (mode) {
   case MODE_CW:
-    sprintf(output, "CW");
+    strcpy_P(output, PSTR("CW"));
     break;
   case MODE_CWR:
-    sprintf(output, "CWR");
+    strcpy_P(output, PSTR("CWR"));
     break;
   case MODE_LSB:
-    sprintf(output, "LSB");
+    strcpy_P(output, PSTR("LSB"));
     break;
   case MODE_USB:
-    sprintf(output, "USB");
+    strcpy_P(output, PSTR("USB"));
     break;
   default:
-    sprintf(output, "N/A");
+    strcpy_P(output, PSTR("N/A"));
     break;
   }
 }
