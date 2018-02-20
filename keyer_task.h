@@ -89,6 +89,8 @@ public:
   virtual void in_state(int8_t state) {
     if (_disabled) return;
 
+    if (rig.getTxMode() != MODE_CW && rig.getTxMode() != MODE_CWR) return;
+
     if ((!_is_key_down) && rig.getTx() == ON && millis() - _key_up_at >= Device::getCwDelay()) {
       rig.setTx(OFF);
     }
