@@ -298,7 +298,7 @@ void UiTask::in_state(int8_t state) {
       _last_tx = ON;
     }
 
-    displayTask.print(0, 0, ((millis() - _tx_flashing_at) / 500) & 0x01 ? '\x04' : '\x05');
+    displayTask.print(0, 0, ((millis() - _tx_flashing_at) / 500) & 0x01 ? '\x02' : '\x03');
     return;
   }
 
@@ -560,7 +560,7 @@ void UiTask::update_rig_display() {
   displayTask.print(2, 1, rig.getVfo() == VFO_A ? "A" : "B");
 
   // TX?
-  displayTask.print(0, 0, rig.getTx() == ON ? "\x05\x06" : "");
+  displayTask.print(0, 0, rig.getTx() == ON ? "\x03\x04" : "");
 }
 
 void UiTask::update_menu_display() {
@@ -599,7 +599,7 @@ void UiTask::update_menu_display() {
     if (!_menu_change_val) {
       sprintf(menu_fulltext, "%c.%s:%s", n, menu_text, menu_value_text);
     } else {
-      sprintf(menu_fulltext, "%c.%s[%s]", n, menu_text, menu_value_text);
+      sprintf(menu_fulltext, "%c.%s\xa2%s\xa3", n, menu_text, menu_value_text);
     }
   }
 
@@ -621,7 +621,7 @@ void UiTask::update_freq_adj_base() {
   else if (base == 100000) p = 11;
   else if (base == 1000000) p = 9;
 
-  displayTask.print(p, 0, "\x03");
+  displayTask.print(p, 0, "\x01");
 }
 
 void UiTask::format_mode(char *output, uint8_t mode) {
