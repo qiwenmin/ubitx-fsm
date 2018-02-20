@@ -128,11 +128,15 @@ public:
   void saveVfoCh();
   void setFreqAdjBase(int32_t base);
   int32_t getFreqAdjBase();
+
+  void setItuRegion(uint8_t rgn);
+  uint8_t getItuRegion();
 private:
   uint8_t _tx;
   uint8_t _dial_lock;
   bool _is_vfo;
   int32_t _freq_adj_base;
+  uint8_t _rgn;
 
   Channel *_working_ch;
   Channel _vfo_ch;

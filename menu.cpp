@@ -301,6 +301,22 @@ void format_menu_value_cw_key(char *buf, int16_t val) {
   }
 }
 
+bool select_menu_itu_rgn(int16_t val, bool selected) {
+  if (!selected) return true;
+
+  rig.setItuRegion(val + 1);
+
+  return true;
+}
+
+int16_t get_menu_value_itu_rgn() {
+  return rig.getItuRegion() - 1;
+}
+
+void format_menu_value_itu_rgn(char *buf, int16_t val) {
+  sprintf(buf, "%" PRIi16, val + 1);
+}
+
 static bool in_calibrating = false;
 static int32_t prev_calibration = 0;
 static uint32_t prev_usbCarrier = 0;
@@ -441,6 +457,7 @@ const Menu_Item main_menu[] PROGMEM = {
   {"CW WPM",       56, select_menu_cw_wpm,       NULL,               get_menu_value_cw_wpm,    format_menu_value_cw_wpm,   NULL                         },
   {"CW Delay",     11, select_menu_cw_delay,     NULL,               get_menu_value_cw_delay,  format_menu_value_cw_delay, NULL                         },
   {"Key",           5, select_menu_cw_key,       NULL,               get_menu_value_cw_key,    format_menu_value_cw_key,   NULL                         },
+  {"ITU Rgn",       3, select_menu_itu_rgn,      NULL,               get_menu_value_itu_rgn,   format_menu_value_itu_rgn,  NULL                         },
   {"SYS CONF",      2, select_menu_sys_conf,     format_menu_no_val, get_menu_value_no,        format_menu_value_yes_no,   NULL                         },
   {"Exit Menu",     0, NULL,                     NULL,               NULL,                     NULL,                       NULL                         }
 };

@@ -21,51 +21,46 @@
 #include "rig.h"
 #include "version.h"
 
-//#define ITU_REGION_1
-//#define ITU_REGION_2
-#define ITU_REGION_3
-//#define ITU_REGION_ALL
+typedef struct {
+  uint8_t rgn;
+  uint16_t freq_k_from;
+  uint16_t freq_k_to;
+} HamBandRange;
 
 // https://en.wikipedia.org/wiki/WARC_bands
-const uint16_t ham_band_range[10][2] PROGMEM = {
-#if defined(ITU_REGION_1)
-  { 1800, 1850 },
-#elif defined(ITU_REGION_2) || defined(ITU_REGION_3) || defined(ITU_REGION_ALL)
-  { 1800, 2000 },
-#endif
+const HamBandRange ham_band_range[] PROGMEM = {
+  // ITU#, From, To
+  { 1, 1800, 1850 },
+  { 2, 1800, 2000 },
+  { 3, 1800, 2000 },
+  { 1, 3500, 3800 },
+  { 2, 3500, 4000 },
+  { 3, 3500, 3900 },
 
-#if defined(ITU_REGION_1)
-  { 3500, 3800 },
-#elif defined(ITU_REGION_2) || defined(ITU_REGION_ALL)
-  { 3500, 4000 },
-#elif defined(ITU_REGION_3)
-  { 3500, 3900 },
-#endif
+  { 0, 5351, 5367 },
 
-  { 5351, 5367 },
+  { 1, 7000, 7200 },
+  { 2, 7000, 7300 },
+  { 3, 7000, 7200 },
 
-#if defined(ITU_REGION_1) || defined(ITU_REGION_3)
-  { 7000, 7200 },
-#elif defined(ITU_REGION_2) || defined(ITU_REGION_ALL)
-  { 7000, 7300 },
-#endif
-
-  { 10100, 10150 },
-  { 14000, 14350 },
-  { 18068, 18168 },
-  { 21000, 21450 },
-  { 24890, 24990 },
-  { 28000, 29700 }
+  { 0, 10100, 10150 },
+  { 0, 14000, 14350 },
+  { 0, 18068, 18168 },
+  { 0, 21000, 21450 },
+  { 0, 24890, 24990 },
+  { 0, 28000, 29700 }
 };
 
-#define HAM_BAND_RANGE_LEN (10)
+static const uint8_t HAM_BAND_RANGE_LEN = sizeof(ham_band_range) / sizeof(ham_band_range[0]);
 
-static bool in_ham_band_range(int32_t freq) {
+static bool in_ham_band_range(uint8_t rgn, int32_t freq) {
   uint16_t fk = (freq / 1000);
   for (uint8_t i = 0; i < HAM_BAND_RANGE_LEN; i ++) {
-    uint16_t fr[2];
-    memcpy_P(fr, &ham_band_range[i][0], sizeof(fr));
-    if (fr[0] <= fk && fk < fr[1]) return true;
+    HamBandRange hbr;
+    memcpy_P(&hbr, &ham_band_range[i], sizeof(hbr));
+    if (hbr.rgn == rgn || hbr.rgn == 0) {
+      if (hbr.freq_k_from <= fk && fk < hbr.freq_k_to) return true;
+    }
   }
 
   return false;
@@ -87,8 +82,7 @@ static bool in_ham_band_range(int32_t freq) {
 #define ADDR_CW_WPM (0x000C)
 #define ADDR_CW_DELAY (0x000D)
 #define ADDR_CW_KEY (0x000E)
-
-// 0x000F - 0x000F reserved
+#define ADDR_ITU_RGN (0x000F)
 
 #define ADDR_MASTER_CALI (0x0010)
 #define ADDR_SSB_BFO (0x0014)
@@ -229,6 +223,16 @@ void eeprom_read_cw_key(uint8_t &key) {
   if (key > 4) key = 4;
 }
 
+void eeprom_write_itu_rgn(uint8_t rgn) {
+  EEPROM.put(ADDR_ITU_RGN, rgn);
+}
+
+void eeprom_read_itu_rgn(uint8_t &rgn) {
+  EEPROM.get(ADDR_ITU_RGN, rgn);
+
+  if (rgn > 3) rgn = 3;
+}
+
 void eeprom_write_master_cali(int32_t cali) {
   EEPROM.put(ADDR_MASTER_CALI, cali);
 }
@@ -302,6 +306,7 @@ void Rig::init() {
     eeprom_read_vfos(_vfo_ch_saved);
     eeprom_read_mem_ch(_ch_idx, _mem_ch);
     eeprom_read_freq_adj_base(_freq_adj_base);
+    eeprom_read_itu_rgn(_rgn);
 
     if (_is_vfo) _working_ch = &_vfo_ch;
     else _working_ch = &_mem_ch;
@@ -322,6 +327,7 @@ void Rig::resetAll() {
 
   _ch_idx = 0;
   _freq_adj_base = 100;
+  _rgn = 3;
 
   init_channel(&_vfo_ch);
   init_channel(&_vfo_ch_saved);
@@ -339,6 +345,7 @@ void Rig::resetAll() {
   eeprom_write_is_vfo(_is_vfo);
   eeprom_write_mem_ch_idx(_ch_idx);
   eeprom_write_freq_adj_base(_freq_adj_base);
+  eeprom_write_itu_rgn(_rgn);
 
   eeprom_write_vfos(_vfo_ch);
 
@@ -439,7 +446,7 @@ uint8_t Rig::getModeAnother() {
 void Rig::setTx(uint8_t tx) {
   if ((tx == ON || tx == OFF) && (tx != _tx)) {
 
-    if (tx == ON && (!in_ham_band_range(getTxFreq()))) return;
+    if (tx == ON && (!in_ham_band_range(_rgn, getTxFreq()))) return;
 
     _tx = tx;
 
@@ -686,6 +693,14 @@ void Rig::setFreqAdjBase(int32_t base) {
 
 int32_t Rig::getFreqAdjBase() {
   return _freq_adj_base;
+}
+
+void Rig::setItuRegion(uint8_t rgn) {
+  _rgn = rgn;
+}
+
+uint8_t Rig::getItuRegion() {
+  return _rgn;
 }
 
 void Rig::updateDeviceFreqMode() {
