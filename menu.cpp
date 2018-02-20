@@ -201,11 +201,11 @@ int16_t get_menu_value_no() {
 }
 
 bool select_menu_cw_tone(int16_t val, bool selected) {
-  if (!selected) return false;
+  if (!selected) return true;
 
   Device::setCwTone(val * 50 + 400);
 
-  return false;
+  return true;
 }
 
 int16_t get_menu_value_cw_tone() {
@@ -223,11 +223,11 @@ void format_menu_value_cw_tone(char *buf, int16_t val) {
 }
 
 bool select_menu_cw_wpm(int16_t val, bool selected) {
-  if (!selected) return false;
+  if (!selected) return true;
 
   Device::setCwWpm(val + 5);
 
-  return false;
+  return true;
 }
 
 int16_t get_menu_value_cw_wpm() {
@@ -245,11 +245,11 @@ void format_menu_value_cw_wpm(char *buf, int16_t val) {
 }
 
 bool select_menu_cw_delay(int16_t val, bool selected) {
-  if (!selected) return false;
+  if (!selected) return true;
 
   Device::setCwDelay(val * 100);
 
-  return false;
+  return true;
 }
 
 int16_t get_menu_value_cw_delay() {
@@ -267,11 +267,11 @@ void format_menu_value_cw_delay(char *buf, int16_t val) {
 }
 
 bool select_menu_cw_key(int16_t val, bool selected) {
-  if (!selected) return false;
+  if (!selected) return true;
 
   Device::setCwKey(val);
 
-  return false;
+  return true;
 }
 
 int16_t get_menu_value_cw_key() {
@@ -428,17 +428,21 @@ bool select_menu_sys_exit(int16_t, bool) {
 }
 
 const Menu_Item main_menu[] PROGMEM = {
-// text submenu_count  select_menu_f             format_menu_f       get_menu_value_f          format_menu_value_f       get_next_menu_value_f
-  {"Mode",          4, select_menu_mode,         NULL,               get_menu_value_mode,      format_menu_value_mode,   NULL                         },
-  {"A/B",           0, select_menu_exchange_vfo, NULL,               NULL,                     NULL,                     NULL                         },
-  {"A=B",           0, select_menu_equalize_vfo, NULL,               NULL,                     NULL,                     NULL                         },
-  {"Split",         0, select_menu_split,        format_menu_split,  NULL,                     NULL,                     NULL                         },
-  {"V/M",           0, select_menu_vm,           NULL,               NULL,                     NULL,                     NULL                         },
-  {"M\x7eV", MEM_SIZE, select_menu_mem_to_vfo,   NULL,               get_menu_value_mem_ok_ch, format_menu_value_mem_ch, get_next_menu_value_mem_ok_ch},
-  {"MW",     MEM_SIZE, select_menu_mem_write,    NULL,               get_menu_value_mem_ch,    format_menu_value_mem_ch, NULL                         },
-  {"MC",     MEM_SIZE, select_menu_mem_clear,    NULL,               get_menu_value_mem_ok_ch, format_menu_value_mem_ch, get_next_menu_value_mem_ok_ch},
-  {"SYS CONF",      2, select_menu_sys_conf,     format_menu_no_val, get_menu_value_no,        format_menu_value_yes_no, NULL},
-  {"Exit Menu",     0, NULL,                     NULL,               NULL,                     NULL,                     NULL                         }
+// text submenu_count  select_menu_f             format_menu_f       get_menu_value_f          format_menu_value_f         get_next_menu_value_f
+  {"Mode",          4, select_menu_mode,         NULL,               get_menu_value_mode,      format_menu_value_mode,     NULL                         },
+  {"A/B",           0, select_menu_exchange_vfo, NULL,               NULL,                     NULL,                       NULL                         },
+  {"A=B",           0, select_menu_equalize_vfo, NULL,               NULL,                     NULL,                       NULL                         },
+  {"Split",         0, select_menu_split,        format_menu_split,  NULL,                     NULL,                       NULL                         },
+  {"V/M",           0, select_menu_vm,           NULL,               NULL,                     NULL,                       NULL                         },
+  {"M\x7eV", MEM_SIZE, select_menu_mem_to_vfo,   NULL,               get_menu_value_mem_ok_ch, format_menu_value_mem_ch,   get_next_menu_value_mem_ok_ch},
+  {"MW",     MEM_SIZE, select_menu_mem_write,    NULL,               get_menu_value_mem_ch,    format_menu_value_mem_ch,   NULL                         },
+  {"MC",     MEM_SIZE, select_menu_mem_clear,    NULL,               get_menu_value_mem_ok_ch, format_menu_value_mem_ch,   get_next_menu_value_mem_ok_ch},
+  {"CW Tone",      33, select_menu_cw_tone,      NULL,               get_menu_value_cw_tone,   format_menu_value_cw_tone,  NULL                         },
+  {"CW WPM",       56, select_menu_cw_wpm,       NULL,               get_menu_value_cw_wpm,    format_menu_value_cw_wpm,   NULL                         },
+  {"CW Delay",     11, select_menu_cw_delay,     NULL,               get_menu_value_cw_delay,  format_menu_value_cw_delay, NULL                         },
+  {"Key",           5, select_menu_cw_key,       NULL,               get_menu_value_cw_key,    format_menu_value_cw_key,   NULL                         },
+  {"SYS CONF",      2, select_menu_sys_conf,     format_menu_no_val, get_menu_value_no,        format_menu_value_yes_no,   NULL                         },
+  {"Exit Menu",     0, NULL,                     NULL,               NULL,                     NULL,                       NULL                         }
 };
 
 const uint8_t main_menu_item_count = sizeof(main_menu) / sizeof(main_menu[0]);
@@ -450,10 +454,6 @@ const Menu_Item system_menu[] PROGMEM = {
 // text submenu_count  select_menu_f         format_menu_f       get_menu_value_f         format_menu_value_f         get_next_menu_value_f
 //  {"0BEAT Cal",    -1, select_menu_0beat,    format_menu_0beat,  get_menu_value_0beat,    format_menu_value_0beat,    NULL},
   {"Exit Menu",     0, select_menu_sys_exit, NULL,               NULL,                    NULL,                       NULL},
-  {"CW Tone",      33, select_menu_cw_tone,  NULL,               get_menu_value_cw_tone,  format_menu_value_cw_tone,  NULL},
-  {"CW WPM",       56, select_menu_cw_wpm,   NULL,               get_menu_value_cw_wpm,   format_menu_value_cw_wpm,   NULL},
-  {"CW Delay",     11, select_menu_cw_delay, NULL,               get_menu_value_cw_delay, format_menu_value_cw_delay, NULL},
-  {"Key",           5, select_menu_cw_key,   NULL,               get_menu_value_cw_key,   format_menu_value_cw_key,   NULL},
   {"10MHz Cal",    -1, select_menu_10m,      format_menu_10m,    get_menu_value_10m,      format_menu_value_10m,      NULL},
   {"BFO Cal",      -1, select_menu_bfo,      format_menu_bfo,    get_menu_value_bfo,      format_menu_value_bfo,      NULL},
   {"Reset All",     2, select_menu_rst_all,  format_menu_no_val, get_menu_value_no,       format_menu_value_yes_no,   NULL}
