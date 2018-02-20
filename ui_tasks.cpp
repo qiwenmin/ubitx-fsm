@@ -19,6 +19,7 @@
 #include "menu.h"
 #include "version.h"
 #include "display_task.h"
+#include "keyer_task.h"
 #include "rig.h"
 #include "objs.h"
 
@@ -175,6 +176,7 @@ void UiTask::init() {
   _menu_change_val = false;
 
   _last_fbutton_state = FBTN_UP;
+  _last_ptt_state = FBTN_UP;
 
   _last_tx = OFF;
   _tx_flashing_at = 0;
@@ -286,6 +288,15 @@ void UiTask::in_state(int8_t state) {
   
     if (pttTask.getButtonState() == LOW && rig.getTx() == OFF) {
       rig.setTx(ON);
+    }
+  } else {
+    if (pttTask.getButtonState() == HIGH) {
+      if (_last_ptt_state == FBTN_DOWN) {
+        keyerTask.setAutoTextMode(!keyerTask.isAutoTextMode());
+      }
+      _last_ptt_state = FBTN_UP;
+    } else {
+      _last_ptt_state = FBTN_DOWN;
     }
   }
 

@@ -131,6 +131,10 @@ public:
 
   void setItuRegion(uint8_t rgn);
   uint8_t getItuRegion();
+
+  void getAutokeyTextCh(uint8_t idx, char &ch);
+
+  
 private:
   uint8_t _tx;
   uint8_t _dial_lock;

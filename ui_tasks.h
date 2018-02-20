@@ -68,6 +68,7 @@ private:
   int8_t _current_state;
 
   uint8_t _last_fbutton_state;
+  uint8_t _last_ptt_state;
 
   int8_t _menu_idx;
   bool _menu_change_val;

@@ -84,12 +84,21 @@ static bool in_ham_band_range(uint8_t rgn, int32_t freq) {
 #define ADDR_CW_KEY (0x000E)
 #define ADDR_ITU_RGN (0x000F)
 
-#define ADDR_MASTER_CALI (0x0010)
-#define ADDR_SSB_BFO (0x0014)
-#define ADDR_CW_BFO (0x0018)
+// 0x0010 - 0x003F reserved
+
+#define ADDR_AUTOKEY_TEXT (0x0040)
+#define ADDR_AUTOKEY_TEXT_LEN (0x0040)
+
+#define ADDR_MASTER_CALI (0x0080)
+#define ADDR_SSB_BFO (0x0084)
+#define ADDR_CW_BFO (0x0088)
+
+// 0x008C - 0x008F reserved
 
 #define ADDR_VFOS (0x00F0) // 0x0100 - 0x0010
 #define ADDR_MEM_CH_BEGIN (0x0100)  // MEM: 0x0100 ~ 0x02FF
+
+// 0x0300 - 0x03FF reserved
 
 inline bool eeprom_ok() {
   uint16_t n = 0;
@@ -233,6 +242,18 @@ void eeprom_read_itu_rgn(uint8_t &rgn) {
   if (rgn > 3) rgn = 3;
 }
 
+void eeprom_write_autokey_text_ch(uint8_t offset, char ch) {
+  if (offset < ADDR_AUTOKEY_TEXT_LEN) {
+    EEPROM.put(ADDR_AUTOKEY_TEXT + offset, ch);
+  }
+}
+
+void eeprom_read_autokey_text_ch(uint8_t offset, char &ch) {
+  if (offset < ADDR_AUTOKEY_TEXT_LEN) {
+    EEPROM.get(ADDR_AUTOKEY_TEXT + offset, ch);
+  }
+}
+
 void eeprom_write_master_cali(int32_t cali) {
   EEPROM.put(ADDR_MASTER_CALI, cali);
 }
@@ -346,6 +367,9 @@ void Rig::resetAll() {
   eeprom_write_mem_ch_idx(_ch_idx);
   eeprom_write_freq_adj_base(_freq_adj_base);
   eeprom_write_itu_rgn(_rgn);
+
+  char ch = 0;
+  eeprom_write_autokey_text_ch(0, ch);
 
   eeprom_write_vfos(_vfo_ch);
 
@@ -701,6 +725,14 @@ void Rig::setItuRegion(uint8_t rgn) {
 
 uint8_t Rig::getItuRegion() {
   return _rgn;
+}
+
+void Rig::getAutokeyTextCh(uint8_t idx, char &ch) {
+  if (idx < ADDR_AUTOKEY_TEXT_LEN) {
+    eeprom_read_autokey_text_ch(idx, ch);
+  } else {
+    ch = 0;
+  }
 }
 
 void Rig::updateDeviceFreqMode() {
