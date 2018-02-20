@@ -40,7 +40,7 @@ public:
 
     _element_at = 0;
     _element_type = ET_IDLE;
-    _last_key = _next_key = PADDLE_NONE;
+    _expect_key = _next_key = PADDLE_NONE;
   };
 
   virtual void init() {
@@ -73,35 +73,48 @@ public:
         }
       } else {
         // iambic a/b l/r
-        if (Device::getCwKey() == CW_KEY_IAMBIC_A_L || Device::getCwKey() == CW_KEY_IAMBIC_B_L) {
+        uint8_t cwKey = Device::getCwKey();
+        if (cwKey == CW_KEY_IAMBIC_A_L || cwKey == CW_KEY_IAMBIC_B_L) {
           if (k == PADDLE_DOT) k = PADDLE_DASH;
           else if (k == PADDLE_DASH) k = PADDLE_DOT;
         }
 
         switch (_element_type) {
         case ET_IDLE:
-          if (_next_key != PADDLE_NONE && (Device::getCwKey() == CW_KEY_IAMBIC_B_L || Device::getCwKey() == CW_KEY_IAMBIC_B_R)) k = _next_key;
+          if (cwKey == CW_KEY_IAMBIC_B_L || cwKey == CW_KEY_IAMBIC_B_R) {
+            // Iambic B
+            if (k == PADDLE_NONE) {
+              k = _next_key;
+            }
+          }
+
+          _next_key = PADDLE_NONE;
+
+          if (k == PADDLE_BOTH) {
+            if (_expect_key != PADDLE_NONE) {
+              k = _expect_key;
+            } else {
+              k = PADDLE_DASH; // Dash first
+            }
+            _next_key = k == PADDLE_DASH ? PADDLE_DOT : PADDLE_DASH;
+          }
+
           if (k == PADDLE_DASH) {
+            _expect_key = PADDLE_DOT;
             _element_type = ET_DASH;
             _element_at = millis();
             keyDown();
           } else if (k == PADDLE_DOT) {
+            _expect_key = PADDLE_DASH;
             _element_type = ET_DOT;
             _element_at = millis();
             keyDown();
-          } else if (k == PADDLE_BOTH) {
-            if (_last_key != PADDLE_NONE) {
-              _element_type = _last_key == PADDLE_DOT ? ET_DASH : ET_DOT;
-            }
-            _element_at = millis();
-            keyDown();              
+          } else {
+            _expect_key = PADDLE_NONE;
           }
-          _next_key = PADDLE_NONE;
-          _last_key = PADDLE_NONE;
           break;
         case ET_DOT:
-          _last_key = PADDLE_DOT;
-          if (_next_key == PADDLE_NONE && (k == PADDLE_DASH || k == PADDLE_BOTH)) _next_key = PADDLE_DASH;
+          if (k == PADDLE_BOTH || k == _expect_key) _next_key = _expect_key;
           if (millis() - _element_at >= Device::getCwSpeed()) {
             _element_type = ET_IG;
             _element_at = millis();
@@ -109,8 +122,7 @@ public:
           }
           break;
         case ET_DASH:
-          _last_key = PADDLE_DASH;
-          if (_next_key == PADDLE_NONE && (k == PADDLE_DOT || k == PADDLE_BOTH)) _next_key = PADDLE_DOT;
+          if (k == PADDLE_BOTH || k == _expect_key) _next_key = _expect_key;
           if (millis() - _element_at >= Device::getCwSpeed() * 3) {
             _element_type = ET_IG;
             _element_at = millis();
@@ -118,10 +130,7 @@ public:
           }
           break;
         case ET_IG:
-          if (_next_key == PADDLE_NONE) {
-            if (k == PADDLE_BOTH) _next_key = _last_key = PADDLE_DOT ? PADDLE_DASH : PADDLE_DOT;
-            else if ((k == PADDLE_DOT || k == PADDLE_DASH) && k != _last_key) _next_key = k;
-          }
+          if (k == PADDLE_BOTH || k == _expect_key) _next_key = _expect_key;
           if (millis() - _element_at >= Device::getCwSpeed()) {
             _element_type = ET_IDLE;
           }
@@ -142,7 +151,7 @@ private:
   unsigned long _key_up_at;
   unsigned long _element_at;
   uint8_t _element_type;
-  uint8_t _last_key, _next_key;
+  uint8_t _expect_key, _next_key;
   bool _disabled;
 
   uint8_t getPaddle() {
