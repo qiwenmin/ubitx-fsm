@@ -1087,8 +1087,6 @@ void Device::cwKeyUp() {
 void Device::startCalibrate10M() {
   Device::setTxFilters(10000000L);
 
-  calibration = 0;
-
   si5351_set_calibration(calibration);
 
   digitalWrite(TX_RX, 1);
@@ -1110,6 +1108,23 @@ void Device::stopCalibrate10M(bool save) {
 
   digitalWrite(CW_KEY, 0);
   digitalWrite(TX_RX, 0);
+
+  si5351_set_calibration(calibration);
+  Device::updateHardware();
+}
+
+void Device::startCalibrate0beat() {
+  Device::updateHardware();
+}
+
+void Device::updateCalibrate0beat() {
+  si5351_set_calibration(calibration);
+
+  Device::updateHardware();
+}
+
+void Device::stopCalibrate0beat(bool save) {
+  if (save) eeprom_write_master_cali(calibration);
 
   si5351_set_calibration(calibration);
   Device::updateHardware();

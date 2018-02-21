@@ -192,6 +192,10 @@ public:
   static void updateCalibrate10M();
   static void stopCalibrate10M(bool save = true);
 
+  static void startCalibrate0beat();
+  static void updateCalibrate0beat();
+  static void stopCalibrate0beat(bool save = true);
+
   static void startCalibrateBfo();
   static void updateCalibrateBfo();
   static void stopCalibrateBfo(bool save = true);

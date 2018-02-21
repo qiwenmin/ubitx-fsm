@@ -370,6 +370,58 @@ void format_menu_value_10m(char *buf, int16_t val) {
   }
 }
 
+bool select_menu_0beat(int16_t /*val*/, bool selected) {
+  in_calibrating = false;
+
+  if (!selected) calibration = prev_calibration;
+
+  usbCarrier = prev_usbCarrier;
+  Device::stopCalibrate0beat(selected);
+
+  displayTask.clear1();
+  displayTask.print1(selected ? F("Cali Done!") : F("Cancalled!"));
+
+  return false;
+}
+
+void format_menu_0beat(char *buf, const char */*original_text*/, bool change_val, int16_t) {
+  if (!change_val) {
+    strcpy_P(buf, PSTR("0-Beat Calibra"));
+  } else {
+    strcpy_P(buf, PSTR("Cali"));
+  }
+}
+
+int16_t get_menu_value_0beat() {
+  return calibration / 875;
+}
+
+void format_menu_value_0beat(char *buf, int16_t val) {
+  sprintf(buf, "%6" PRIi16, val);
+
+  if (!in_calibrating) {
+    in_calibrating = true;
+
+    prev_calibration = calibration;
+    prev_usbCarrier = usbCarrier;
+
+    Device::startCalibrate0beat();
+
+    displayTask.clear1();
+    displayTask.print1(F("Calibrating"));
+  } else {
+    char msg[17];
+
+    calibration = 875L * (int32_t)val;
+    usbCarrier = prev_usbCarrier + 12 * ((calibration - prev_calibration) / 875L);
+    Device::updateCalibrate0beat();
+
+    sprintf(msg, "cal:%" PRIi32, calibration);
+    displayTask.clear1();
+    displayTask.print1(msg);
+  }
+}
+
 bool select_menu_bfo(int16_t /*val*/, bool selected) {
   in_calibrating = false;
 
@@ -469,9 +521,9 @@ uint8_t menu_item_count = main_menu_item_count;
 
 const Menu_Item system_menu[] PROGMEM = {
 // text submenu_count  select_menu_f         format_menu_f       get_menu_value_f         format_menu_value_f         get_next_menu_value_f
-//  {"0BEAT Cal",    -1, select_menu_0beat,    format_menu_0beat,  get_menu_value_0beat,    format_menu_value_0beat,    NULL},
   {"Exit Menu",     0, select_menu_sys_exit, NULL,               NULL,                    NULL,                       NULL},
   {"10MHz Cal",    -1, select_menu_10m,      format_menu_10m,    get_menu_value_10m,      format_menu_value_10m,      NULL},
+  {"0BEAT Cal",    -1, select_menu_0beat,    format_menu_0beat,  get_menu_value_0beat,    format_menu_value_0beat,    NULL},
   {"BFO Cal",      -1, select_menu_bfo,      format_menu_bfo,    get_menu_value_bfo,      format_menu_value_bfo,      NULL},
   {"Reset All",     2, select_menu_rst_all,  format_menu_no_val, get_menu_value_no,       format_menu_value_yes_no,   NULL}
 };
