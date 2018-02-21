@@ -34,3 +34,6 @@ fsmos
 
 # IDE and editor
 .vscode/
+
+# macOs
+.DS_Store
