@@ -796,26 +796,40 @@ extern LiquidCrystal lcd;
 
 // len - with the tail zero
 static bool serialReadString(char *buf, uint8_t len) {
+  static char ignore_crlf = 0;
+
   uint8_t i = 0;
-  while (i < len - 1) {
+  for (;;) {
     while (Serial.available() == 0) ;
+
     char ch = Serial.read();
-    if (ch == 0x0a || ch == 0x0d) {
+
+    if (ch == 0x0a || ch == 0x0d) { // LF or CR
+      if (ignore_crlf == 0) {
+        ignore_crlf = ch == 0x0a ? 0x0d : 0x0a;
+      }
+
+      if (ch == ignore_crlf) continue;
+
       buf[i] = 0;
       break;
-    } else if (ch == '\b') {
+    } else if (ch == '\b' || ch == 0x7f) { // BS/^H or DEL/^?
       if (i > 0) {
         i --;
         Serial.print(F("\b \b"));
       }
-    } else if (ch == 0x03) {
-      // CTRL+C
+    } else if (ch == 0x03) { // ETX/^C
       return false;
     } else {
-      if (ch >= 0x20) {
-        buf[i] = ch;
+      if (i < len - 1) {
+        if (ch >= 0x20 && ch < 0x7f) {
+          buf[i] = ch;
+          Serial.print(ch);
+          i ++;
+        }
+      } else {
+        ch = 0x07; // BEL/^G
         Serial.print(ch);
-        i ++;
       }
     }
   }
