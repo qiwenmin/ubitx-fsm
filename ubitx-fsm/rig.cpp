@@ -800,13 +800,13 @@ static bool serialReadString(char *buf, uint8_t len) {
   while (i < len - 1) {
     while (Serial.available() == 0) ;
     char ch = Serial.read();
-    if (ch == 0x0a) {
+    if (ch == 0x0a || ch == 0x0d) {
       buf[i] = 0;
       break;
     } else if (ch == '\b') {
       if (i > 0) {
         i --;
-        Serial.print(ch);
+        Serial.print(F("\b \b"));
       }
     } else if (ch == 0x03) {
       // CTRL+C
@@ -836,7 +836,7 @@ void Rig::serialSetup() {
 
     Serial.flush();
 
-    Serial.print(F("\n\n1. Callsign: "));
+    Serial.print(F("\r\n\r\n1. Callsign: "));
     for (i = 0; i < ADDR_CALLSIGN_LEN; i ++) {
       eeprom_read_callsign_ch(i, ch);
       if (ch == 0) break;
@@ -844,18 +844,18 @@ void Rig::serialSetup() {
       Serial.print(ch);
     }
 
-    Serial.print(F("\n2. Autokey Text: "));
+    Serial.print(F("\r\n2. Autokey Text: "));
     for (i = 0; i < ADDR_AUTOKEY_TEXT_LEN; i ++) {
       eeprom_read_autokey_text_ch(i, ch);
       if (ch == 0) break;
 
       Serial.print(ch);
     }
-    Serial.print(F("\n\nPower off the uBitx when done. Choose [1, 2]: "));
+    Serial.print(F("\r\n\r\nPower off the uBitx when done. Choose [1, 2]: "));
 
     serialReadString(buf, 2);
     if (buf[0] == '1') {
-      Serial.print(F("\n\nInput Callsign: "));
+      Serial.print(F("\r\n\r\nInput Callsign: "));
       if (serialReadString(buf, 16)) {
         i = 0;
 
@@ -866,7 +866,7 @@ void Rig::serialSetup() {
         eeprom_write_callsign_ch(i, buf[i]);
       }
     } else if (buf[0] == '2') {
-      Serial.print(F("\n\nInput Autokey text: "));
+      Serial.print(F("\r\n\r\nInput Autokey text: "));
       if (serialReadString(buf, 64)) {
         i = 0;
 
