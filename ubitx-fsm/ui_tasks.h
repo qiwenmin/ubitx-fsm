@@ -79,6 +79,8 @@ private:
   unsigned long _tx_flashing_at;
   unsigned long _save_vfo_ch_at;
 
+  bool _ptt_to_rx;
+
   void update_rig_display();
   void update_menu_display();
   void update_freq_adj_base();

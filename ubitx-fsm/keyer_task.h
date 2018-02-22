@@ -47,6 +47,7 @@ public:
     _pin = pin;
     _is_key_down = false;
     _key_up_at = 0;
+    _cw_delay_enabled = false;
 
     _autotext_mode = false;
 
@@ -93,7 +94,8 @@ public:
 
     if (rig.getTxMode() != MODE_CW && rig.getTxMode() != MODE_CWR) return;
 
-    if ((!_is_key_down) && rig.getTx() == ON && millis() - _key_up_at >= Device::getCwDelay()) {
+    if (_cw_delay_enabled && (!_is_key_down) && rig.getTx() == ON && millis() - _key_up_at >= Device::getCwDelay()) {
+      _cw_delay_enabled = false;
       rig.setTx(OFF);
     }
 
@@ -147,6 +149,7 @@ private:
     }
 
     _is_key_down = true;
+    _cw_delay_enabled = true;
     Device::cwKeyDown();
   };
 
@@ -159,6 +162,8 @@ private:
 
 
   unsigned long _key_up_at;
+  bool _cw_delay_enabled;
+
   unsigned long _element_at;
   uint8_t _element_type;
   uint8_t _expect_key, _next_key;

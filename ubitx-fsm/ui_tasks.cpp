@@ -180,6 +180,8 @@ void UiTask::init() {
   _tx_flashing_at = 0;
   _save_vfo_ch_at = millis();
 
+  _ptt_to_rx = false;
+
   rig.init();
 
   gotoState(MENU_WELCOME);
@@ -284,12 +286,17 @@ void UiTask::in_state(int8_t state) {
 
   // ptt?
   if (rig.getTxMode() == MODE_LSB || rig.getTxMode() == MODE_USB) {
-    if (pttTask.getButtonState() == HIGH && rig.getTx() == ON) {
+    if (pttTask.getButtonState() == HIGH && rig.getTx() == ON && _ptt_to_rx) {
       rig.setTx(OFF);
+      _ptt_to_rx = false;
     }
 
-    if (pttTask.getButtonState() == LOW && rig.getTx() == OFF) {
-      rig.setTx(ON);
+    if (pttTask.getButtonState() == LOW) {
+      _ptt_to_rx = true;
+
+      if (rig.getTx() == OFF) {
+        rig.setTx(ON);
+      }
     }
   } else {
     if (pttTask.getButtonState() == HIGH) {
