@@ -867,28 +867,29 @@ void Rig::serialSetup() {
     }
     Serial.print(F("\r\n\r\nPower off the uBitx when done. Choose [1, 2]: "));
 
-    serialReadString(buf, 2);
-    if (buf[0] == '1') {
-      Serial.print(F("\r\n\r\nInput Callsign: "));
-      if (serialReadString(buf, 16)) {
-        i = 0;
-
-        while (buf[i] != 0) {
+    if (serialReadString(buf, 2)) {
+      if (buf[0] == '1') {
+        Serial.print(F("\r\n\r\nInput Callsign: "));
+        if (serialReadString(buf, 16)) {
+          i = 0;
+  
+          while (buf[i] != 0) {
+            eeprom_write_callsign_ch(i, buf[i]);
+            i ++;
+          }
           eeprom_write_callsign_ch(i, buf[i]);
-          i ++;
         }
-        eeprom_write_callsign_ch(i, buf[i]);
-      }
-    } else if (buf[0] == '2') {
-      Serial.print(F("\r\n\r\nInput Autokey text: "));
-      if (serialReadString(buf, 64)) {
-        i = 0;
-
-        while (buf[i] != 0) {
+      } else if (buf[0] == '2') {
+        Serial.print(F("\r\n\r\nInput Autokey text: "));
+        if (serialReadString(buf, 64)) {
+          i = 0;
+  
+          while (buf[i] != 0) {
+            eeprom_write_autokey_text_ch(i, buf[i]);
+            i ++;
+          }
           eeprom_write_autokey_text_ch(i, buf[i]);
-          i ++;
         }
-        eeprom_write_autokey_text_ch(i, buf[i]);
       }
     }
   }
