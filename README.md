@@ -10,6 +10,8 @@ before I started this project. Thanks, [Ian Lee](https://github.com/phdlee)!
 
 ## Change logs
 
+* 2018-02-22 Implemented almost complete functionality. And prepared [a
+  Simplified Chinese manual](Manual_zh.md).
 * 2018-01-26 Implemented the ICOM CI-V commands for ubitx. Supports HRD,
   OmniRig and WSJT-X (IC-7000).
 
