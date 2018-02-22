@@ -842,6 +842,8 @@ static bool serialReadString(char *buf, uint8_t len) {
 void Rig::serialSetup() {
   lcd.setCursor(0, 0);
   lcd.print(F("Setup via Serial"));
+  lcd.setCursor(0, 1);
+  lcd.print(F("19200 8N1 NoEcho"));
 
   for (;;) {
     char ch;
