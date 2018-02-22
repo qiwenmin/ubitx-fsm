@@ -19,6 +19,7 @@
 #include <fsmos.h>
 
 #include "rig.h"
+#include "ui_tasks.h"
 #include "objs.h"
 
 #define PADDLE_NONE 0
@@ -74,6 +75,7 @@ public:
     case KEY_READY:
       _element_type = ET_IDLE;
       _expect_key = _next_key = PADDLE_NONE;
+      _wait_paddle_release = false;
       break;
     case KEY_AUTOTEXT:
       _sending_state = SS_IDLE;
@@ -164,6 +166,19 @@ private:
   void in_ready_state(uint8_t paddle_key = PADDLE_NONE) {
     uint8_t cwKey = Device::getCwKey();
     uint8_t k = getPaddle();
+
+    if (_wait_paddle_release) {
+      if (getPaddle() == PADDLE_NONE) {
+        _wait_paddle_release = false;
+        setAutoTextMode(true);
+      }
+      return;
+    }
+
+    if (uiTask.isMenuMode() && k != PADDLE_NONE) {
+      _wait_paddle_release = true;
+      return;
+    }
 
     if (paddle_key != PADDLE_NONE) {
       // simulate paddle

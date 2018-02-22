@@ -64,6 +64,7 @@ public:
 
   void update_display(void *);
   void gotoSysMenu();
+  bool isMenuMode();
 private:
   int8_t _current_state;
 

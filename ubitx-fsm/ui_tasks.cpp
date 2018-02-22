@@ -193,6 +193,10 @@ void UiTask::gotoSysMenu() {
   delay(2000, MENU_SYSTEM);
 }
 
+bool UiTask::isMenuMode() {
+  return _current_state == MENU_MAIN;
+}
+
 bool UiTask::on_state_change(int8_t new_state, int8_t old_state) {
   _current_state = new_state;
 
