@@ -336,24 +336,68 @@ void UiTask::in_state(int8_t state) {
   // cw key inputs?
   if (state == MENU_MAIN) {
     char ch;
+    bool isDone = false;
     if (keyerTask.getChar(ch)) {
       keyerTask.clearChar();
 
-      switch(ch) {
+      switch (ch) {
       case 'E':
       case 'T':
         if (keyerTask.setAutoTextMode(true)) {
-          gotoState(MENU_NONE);
+          isDone = true;
         }
         break;
       case 'S':
       case 'N':
         Device::selectCwSpeed(ch == 'N');
-        gotoState(MENU_NONE);
+        isDone = true;
+        break;
+      case 'X':
+        rig.exchangeVfo(false);
+        isDone = true;
+        break;
+      case 'C':
+        rig.setMode(MODE_CW, false);
+        isDone = true;
+        break;
+      case 'R':
+        rig.setMode(MODE_CWR, false);
+        isDone = true;
+        break;
+      case 'L':
+        rig.setMode(MODE_LSB, false);
+        isDone = true;
+        break;
+      case 'U':
+        rig.setMode(MODE_USB, false);
+        isDone = true;
+        break;
+      case 'M':
+        isDone = rig.selectMem(false);
+        break;
+      case 'V':
+        rig.selectVfo(false);
+        isDone = true;
+        break;
+      case '0':
+      case '1':
+      case '2':
+      case '3':
+      case '4':
+      case '5':
+      case '6':
+      case '7':
+      case '8':
+      case '9':
+        isDone = rig.isMemOk(ch - '0') && rig.selectMemCh(ch - '0', false) && rig.selectMem(false);
         break;
       default:
         break;
       }
+    }
+
+    if (isDone) {
+      gotoState(MENU_NONE);
     }
   }
 

@@ -279,7 +279,7 @@ int16_t get_menu_value_cw_key() {
 }
 
 void format_menu_value_cw_key(char *buf, int16_t val) {
-  switch(val) {
+  switch (val) {
   case CW_KEY_STRAIGHT:
     strcpy_P(buf, PSTR("STRAIGHT "));
     break;

@@ -103,7 +103,7 @@ public:
 
   void selectVfo(bool need_update = true);
 
-  void selectMem(bool need_update = true);
+  bool selectMem(bool need_update = true);
 
   bool selectMemCh(int8_t ch, bool need_update = true);
 

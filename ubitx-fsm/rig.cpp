@@ -621,8 +621,8 @@ void Rig::selectVfo(bool need_update) {
   if (need_update) rigChanged();
 }
 
-void Rig::selectMem(bool need_update) {
-  if (getTx() == ON) return;
+bool Rig::selectMem(bool need_update) {
+  if (getTx() == ON) return false;
 
   if (isMemOk()) {
     _working_ch = &_mem_ch;
@@ -633,7 +633,11 @@ void Rig::selectMem(bool need_update) {
     updateDeviceFreqMode();
 
     if (need_update) rigChanged();
+
+    return true;
   }
+
+  return false;
 }
 
 bool Rig::selectMemCh(int8_t ch, bool need_update) {
@@ -896,7 +900,7 @@ void Rig::serialSetup() {
     Serial.print(F("\r\n\r\nPower off the uBitx when done. Choose [1, 2, 3]: "));
 
     if (serialReadString(buf, 2)) {
-      switch(buf[0]) {
+      switch (buf[0]) {
       case '1':
         Serial.print(F("\r\n\r\nInput Callsign: "));
         if (serialReadString(buf, 16)) {
