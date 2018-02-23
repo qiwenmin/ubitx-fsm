@@ -178,6 +178,7 @@ public:
   static void setCwWpm(uint8_t wpm);
   static uint8_t getCwWpm();
   static uint16_t getCwSpeed();
+  static void selectCwSpeed(bool isNormal = true);
 
   static void setCwDelay(uint16_t cwDelay);
   static uint16_t getCwDelay();
@@ -208,6 +209,7 @@ private:
   static uint32_t _ssbBfo, _cwBfo;
   static uint16_t _cwTone;
   static uint8_t _cwWpm;
+  static uint8_t _cwWpmLow;
   static uint16_t _cwSpeed;
   static uint16_t _cwDelay;
   static uint8_t _cwKey;

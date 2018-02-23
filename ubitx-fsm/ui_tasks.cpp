@@ -339,10 +339,20 @@ void UiTask::in_state(int8_t state) {
     if (keyerTask.getChar(ch)) {
       keyerTask.clearChar();
 
-      if (ch == 'E' || ch == 'T') {
+      switch(ch) {
+      case 'E':
+      case 'T':
         if (keyerTask.setAutoTextMode(true)) {
           gotoState(MENU_NONE);
         }
+        break;
+      case 'S':
+      case 'N':
+        Device::selectCwSpeed(ch == 'N');
+        gotoState(MENU_NONE);
+        break;
+      default:
+        break;
       }
     }
   }

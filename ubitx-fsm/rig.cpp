@@ -86,7 +86,9 @@ static bool in_ham_band_range(uint8_t rgn, int32_t freq) {
 #define ADDR_CW_KEY (0x000B)
 #define ADDR_ITU_RGN (0x000C)
 
-// 0x000D - 0x002F reserved
+#define ADDR_CW_WPM_LOW (0x000D)
+
+// 0x000E - 0x002F reserved
 
 #define ADDR_CALLSIGN (0X0030)
 #define ADDR_CALLSIGN_LEN (0x0010)
@@ -208,6 +210,24 @@ void eeprom_write_cw_wpm(uint8_t wpm) {
 
 void eeprom_read_cw_wpm(uint8_t &wpm) {
   EEPROM.get(ADDR_CW_WPM, wpm);
+
+  wpm += 5;
+
+  if (wpm < 5) wpm = 5;
+  else if (wpm > 60) wpm = 60;
+}
+
+void eeprom_write_cw_wpm_low(uint8_t wpm) {
+  if (wpm < 5) wpm = 5;
+  else if (wpm > 60) wpm = 60;
+
+  wpm -=5;
+
+  EEPROM.put(ADDR_CW_WPM_LOW, wpm);
+}
+
+void eeprom_read_cw_wpm_low(uint8_t &wpm) {
+  EEPROM.get(ADDR_CW_WPM_LOW, wpm);
 
   wpm += 5;
 
@@ -867,10 +887,17 @@ void Rig::serialSetup() {
 
       Serial.print(ch);
     }
-    Serial.print(F("\r\n\r\nPower off the uBitx when done. Choose [1, 2]: "));
+
+    Serial.print(F("\r\n3. CW key slow WPM: "));
+    eeprom_read_cw_wpm_low(i);
+    sprintf(buf, "%d", i);
+    Serial.print(buf);
+    
+    Serial.print(F("\r\n\r\nPower off the uBitx when done. Choose [1, 2, 3]: "));
 
     if (serialReadString(buf, 2)) {
-      if (buf[0] == '1') {
+      switch(buf[0]) {
+      case '1':
         Serial.print(F("\r\n\r\nInput Callsign: "));
         if (serialReadString(buf, 16)) {
           i = 0;
@@ -881,7 +908,8 @@ void Rig::serialSetup() {
           }
           eeprom_write_callsign_ch(i, buf[i]);
         }
-      } else if (buf[0] == '2') {
+        break;
+      case '2':
         Serial.print(F("\r\n\r\nInput Autokey text: "));
         if (serialReadString(buf, 64)) {
           i = 0;
@@ -892,6 +920,18 @@ void Rig::serialSetup() {
           }
           eeprom_write_autokey_text_ch(i, buf[i]);
         }
+        break;
+      case '3':
+        Serial.print(F("\r\n\r\nInput CW key slow WPM (5-60): "));
+        if (serialReadString(buf, 3)) {
+          i = atoi(buf);
+          if (i >= 5 && i <= 60) {
+            eeprom_write_cw_wpm_low(i);
+          }
+        }
+        break;
+      default:
+        break;
       }
     }
   }
@@ -926,6 +966,7 @@ uint32_t Device::_ssbBfo = 11995000L;
 uint32_t Device::_cwBfo = 11995000L;
 uint16_t Device::_cwTone = 700;
 uint8_t Device::_cwWpm = 15;
+uint8_t Device::_cwWpmLow = 15;
 uint16_t Device::_cwSpeed = 1200 / Device::_cwWpm;
 uint16_t Device::_cwDelay = 500;
 uint8_t Device::_cwKey = CW_KEY_IAMBIC_B_R;
@@ -967,6 +1008,7 @@ void Device::resetAll() {
   Device::_cwBfo = 11995000L;
   Device::_cwTone = 700;
   Device::_cwWpm = 15;
+  Device::_cwWpmLow = 15;
   Device::_cwSpeed = 1200 / Device::_cwWpm;
   Device::_cwDelay = 500;
   Device::_cwKey = CW_KEY_IAMBIC_B_R;
@@ -975,6 +1017,7 @@ void Device::resetAll() {
 void Device::loadSettings() {
   eeprom_read_cw_tone(Device::_cwTone);
   eeprom_read_cw_wpm(Device::_cwWpm);
+  eeprom_read_cw_wpm_low(Device::_cwWpmLow);
   Device::_cwSpeed = 1200 / Device::_cwWpm;
   eeprom_read_cw_delay(Device::_cwDelay);
   eeprom_read_cw_key(Device::_cwKey);
@@ -988,6 +1031,7 @@ void Device::loadSettings() {
 void Device::saveSettings() {
   eeprom_write_cw_tone(Device::_cwTone);
   eeprom_write_cw_wpm(Device::_cwWpm);
+  eeprom_write_cw_wpm(Device::_cwWpmLow);
   eeprom_write_cw_delay(Device::_cwDelay);
   eeprom_write_cw_key(Device::_cwKey);
 
@@ -1061,6 +1105,10 @@ void Device::setCwWpm(uint8_t wpm) {
   Device::_cwSpeed = 1200 / Device::_cwWpm;
 
   eeprom_write_cw_wpm(Device::_cwWpm);
+}
+
+void Device::selectCwSpeed(bool isNormal) {
+  Device::_cwSpeed = 1200 / (isNormal ? Device::_cwWpm : Device::_cwWpmLow);
 }
 
 uint8_t Device::getCwWpm() {
