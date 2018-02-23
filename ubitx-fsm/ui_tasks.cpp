@@ -216,6 +216,7 @@ bool UiTask::on_state_change(int8_t new_state, int8_t old_state) {
     break;
   case MENU_MAIN:
   case MENU_SYSTEM:
+    keyerTask.clearChar();
     if (new_state == MENU_SYSTEM) {
       active_system_menu();
       displayTask.clear1();
@@ -301,7 +302,9 @@ void UiTask::in_state(int8_t state) {
   } else {
     if (pttTask.getButtonState() == HIGH) {
       if (_last_ptt_state == FBTN_DOWN) {
-        keyerTask.setAutoTextMode(!keyerTask.isAutoTextMode());
+        if (keyerTask.setAutoTextMode(!keyerTask.isAutoTextMode())) {
+          gotoState(MENU_NONE);
+        }
       }
       _last_ptt_state = FBTN_UP;
     } else {
@@ -328,6 +331,20 @@ void UiTask::in_state(int8_t state) {
   if (millis() - _save_vfo_ch_at > 10000) {
     rig.saveVfoCh();
     _save_vfo_ch_at = millis();
+  }
+
+  // cw key inputs?
+  if (state == MENU_MAIN) {
+    char ch;
+    if (keyerTask.getChar(ch)) {
+      keyerTask.clearChar();
+
+      if (ch == 'E' || ch == 'T') {
+        if (keyerTask.setAutoTextMode(true)) {
+          gotoState(MENU_NONE);
+        }
+      }
+    }
   }
 
   // long long press --> dial lock and goto menu_none

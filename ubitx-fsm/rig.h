@@ -188,6 +188,8 @@ public:
   static void cwKeyDown();
   static void cwKeyUp();
 
+  static void cwTone(uint8_t cwToneState);
+
   static void startCalibrate10M();
   static void updateCalibrate10M();
   static void stopCalibrate10M(bool save = true);

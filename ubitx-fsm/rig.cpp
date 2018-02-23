@@ -1093,12 +1093,18 @@ uint8_t Device::getCwKey() {
 
 void Device::cwKeyDown() {
   digitalWrite(CW_KEY, 1);
-  tone(CW_TONE, Device::_cwTone);
 }
 
 void Device::cwKeyUp() {
   digitalWrite(CW_KEY, 0);
-  noTone(CW_TONE);
+}
+
+void Device::cwTone(uint8_t cwToneState) {
+  if (cwToneState == OFF) {
+    noTone(CW_TONE);
+  } else {
+    tone(CW_TONE, Device::_cwTone);
+  }
 }
 
 void Device::startCalibrate10M() {

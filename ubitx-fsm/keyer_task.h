@@ -22,6 +22,63 @@
 #include "ui_tasks.h"
 #include "objs.h"
 
+// char buffer - FIFO
+class CharBuffer {
+public:
+  CharBuffer(uint8_t capacity) {
+    _capacity = capacity;
+    _head_idx = 0;
+    _size = 0;
+    _buf = (char *)malloc(_capacity);
+  };
+
+  virtual ~CharBuffer() {
+    free(_buf);
+  };
+
+  bool push(char ch) {
+    if (_size < _capacity) {
+      _buf[(_head_idx + _size) % _capacity] = ch;
+      _size ++;
+      return true;
+    } else {
+      return false;
+    }
+  };
+
+  bool pop(char &ch) {
+    if (_size > 0) {
+      ch = _buf[_head_idx];
+
+      _head_idx = (_head_idx + 1) % _capacity;
+      _size --;
+
+      return true;
+    } else {
+      return false;
+    }
+  };
+
+  bool top(char &ch) {
+    if (_size > 0) {
+      ch = _buf[_head_idx];
+      return true;
+    } else {
+      return false;
+    }
+  };
+
+  void clear() {
+    _size = 0;
+  };
+private:
+  uint8_t _capacity;
+  uint8_t _head_idx;
+  uint8_t _size;
+  char *_buf;
+};
+
+// KeyerTask
 #define PADDLE_NONE 0
 #define PADDLE_DOT 1
 #define PADDLE_DASH 2
@@ -43,7 +100,7 @@
 
 class KeyerTask : public FsmTask {
 public:
-  KeyerTask(uint8_t pin) {
+  KeyerTask(uint8_t pin) : _char_buffer(4) {
     _pin = pin;
     _is_key_down = false;
     _key_up_at = 0;
@@ -76,6 +133,7 @@ public:
     case KEY_READY:
       _element_type = ET_IDLE;
       _expect_key = _next_key = PADDLE_NONE;
+      _receiving_m = 0x01;
       _wait_paddle_release = false;
       break;
     case KEY_AUTOTEXT:
@@ -92,7 +150,7 @@ public:
   virtual void in_state(int8_t state) {
     if (_disabled) return;
 
-    if (rig.getTxMode() != MODE_CW && rig.getTxMode() != MODE_CWR) return;
+    if (rig.getTxMode() != MODE_CW && rig.getTxMode() != MODE_CWR && !uiTask.isMenuMode()) return;
 
     if (_cw_delay_enabled && (!_is_key_down) && rig.getTx() == ON && millis() - _key_up_at >= Device::getCwDelay()) {
       _cw_delay_enabled = false;
@@ -114,18 +172,35 @@ public:
     return _autotext_mode;
   };
 
-  void setAutoTextMode(bool atm) {
+  bool setAutoTextMode(bool atm) {
+    bool result = false;
+
     if (atm) {
-      gotoState(KEY_AUTOTEXT);
+      uint8_t mode = rig.getTxMode();
+      if ((mode == MODE_CW || mode == MODE_CWR) && (!_autotext_mode)) {
+        gotoState(KEY_AUTOTEXT);
+        result = true;
+      }
     } else {
       gotoState(KEY_READY);
     }
+
+    return result;
   };
 
+  bool getChar(char &ch) {
+    return _char_buffer.pop(ch);
+  };
+
+  void clearChar() {
+    _char_buffer.clear();
+  };
 private:
   uint8_t _pin;
   bool _disabled;
   bool _autotext_mode;
+
+  CharBuffer _char_buffer;
 
   uint8_t getPaddle() {
     int paddle = analogRead(_pin);
@@ -141,6 +216,10 @@ private:
   bool _is_key_down;
 
   void keyDown() {
+    Device::cwTone(ON);
+
+    if (uiTask.isMenuMode()) return;
+
     uint8_t mode = rig.getTxMode();
     if (mode != MODE_CW && mode != MODE_CWR) return;
 
@@ -154,6 +233,8 @@ private:
   };
 
   void keyUp() {
+    Device::cwTone(OFF);
+
     _is_key_down = false;
     Device::cwKeyUp();
 
@@ -171,19 +252,6 @@ private:
   void in_ready_state(uint8_t paddle_key = PADDLE_NONE) {
     uint8_t cwKey = Device::getCwKey();
     uint8_t k = getPaddle();
-
-    if (_wait_paddle_release) {
-      if (getPaddle() == PADDLE_NONE) {
-        _wait_paddle_release = false;
-        setAutoTextMode(true);
-      }
-      return;
-    }
-
-    if (uiTask.isMenuMode() && k != PADDLE_NONE) {
-      _wait_paddle_release = true;
-      return;
-    }
 
     if (paddle_key != PADDLE_NONE) {
       // simulate paddle
@@ -204,6 +272,8 @@ private:
       }
     } else {
       // iambic a/b l/r
+      uint16_t cwSpeed = Device::getCwSpeed();
+
       if (cwKey == CW_KEY_IAMBIC_A_L || cwKey == CW_KEY_IAMBIC_B_L) {
         if (k == PADDLE_DOT) k = PADDLE_DASH;
         else if (k == PADDLE_DASH) k = PADDLE_DOT;
@@ -234,18 +304,42 @@ private:
           _element_type = ET_DASH;
           _element_at = millis();
           keyDown();
+
+          _receiving_m = (_receiving_m << 1) | 0x01;
         } else if (k == PADDLE_DOT) {
           _expect_key = PADDLE_DASH;
           _element_type = ET_DOT;
           _element_at = millis();
           keyDown();
+
+          _receiving_m = _receiving_m << 1;
         } else {
           _expect_key = PADDLE_NONE;
+
+          if ((_receiving_m != 0x01)
+            && (millis() - _element_at > (cwSpeed * 2))) {
+            if ((_receiving_m & 0x80) != 0) { // may be '$'
+              _receiving_m = (_receiving_m << 1) | 0x01;
+            } else {
+              _receiving_m = (_receiving_m << 1) | 0x01;
+  
+              while ((_receiving_m & 0x80) == 0) {
+                _receiving_m <<= 1;
+              }
+              _receiving_m <<= 1;
+            }
+
+            char ch = get_or_compare_morse(_receiving_m, false);
+            _receiving_m = 0x01;
+            if (ch != 0) {
+              _char_buffer.push(ch);
+            }
+          }
         }
         break;
       case ET_DOT:
         if (k == PADDLE_BOTH || k == _expect_key) _next_key = _expect_key;
-        if (millis() - _element_at >= Device::getCwSpeed()) {
+        if (millis() - _element_at >= cwSpeed) {
           _element_type = ET_IG;
           _element_at = millis();
           keyUp();
@@ -253,7 +347,7 @@ private:
         break;
       case ET_DASH:
         if (k == PADDLE_BOTH || k == _expect_key) _next_key = _expect_key;
-        if (millis() - _element_at >= Device::getCwSpeed() * 3) {
+        if (millis() - _element_at >= cwSpeed * 3) {
           _element_type = ET_IG;
           _element_at = millis();
           keyUp();
@@ -261,7 +355,7 @@ private:
         break;
       case ET_IG:
         if (k == PADDLE_BOTH || k == _expect_key) _next_key = _expect_key;
-        if (millis() - _element_at >= Device::getCwSpeed()) {
+        if (millis() - _element_at >= cwSpeed) {
           _element_type = ET_IDLE;
         }
         break;
@@ -276,6 +370,7 @@ private:
   uint8_t _sending_state;
   uint8_t _sending_ch_idx;
   bool _wait_paddle_release;
+  uint8_t _receiving_m;
 
   void in_autotext_state() {
     if (_wait_paddle_release) {
@@ -293,6 +388,60 @@ private:
       return;
     }
 
+    char ch;
+
+    switch (_sending_state) {
+    case SS_IDLE:
+      rig.getAutokeyTextCh(_sending_ch_idx, ch);
+      _sending_ch_idx ++;
+
+      if (ch == 0) {
+        // end of the text
+        _sending_ch_idx = 0;
+        setAutoTextMode(false);
+      } else {
+        _sending_m = get_or_compare_morse(ch);
+
+        if (_sending_m == 0x80) {
+          // unknown char, or space
+          _element_at = millis();
+          _sending_state = SS_IWG;
+        } else {
+          _element_type = ET_IDLE;
+          _sending_state = SS_CH;
+        }
+      }
+      break;
+    case SS_CH:
+      if (_sending_m == 0x80) {
+        // finished char!
+        _element_at = millis();
+        _sending_state = SS_ICG;
+      } else {
+        in_ready_state(_sending_m & 0x80 ? PADDLE_DASH : PADDLE_DOT);
+
+        if (_element_type == ET_IDLE) {
+          // finished dot/dash
+          _sending_m <<= 1;
+        }
+      }
+      break;
+    case SS_ICG:
+      if (millis() - _element_at >= Device::getCwSpeed() * 2) {
+        _sending_state = SS_IDLE;
+      }
+      break;
+    case SS_IWG:
+      if (millis() - _element_at >= Device::getCwSpeed() * 4) {
+        _sending_state = SS_IDLE;
+      }
+      break;
+    default:
+      break;
+    }
+  };
+
+  uint8_t get_or_compare_morse(uint8_t v, bool get_morse = true) {
     static const uint8_t morse_table[] PROGMEM = {
       0b10101110, // ! _._.__
       0b01001010, // " ._.._.
@@ -358,70 +507,42 @@ private:
 
     static const uint8_t under_score_index = sizeof(morse_table) - 1;
 
-    char ch;
-    int8_t m_idx;
+    uint8_t result = 0;
+    int8_t idx = -1;
 
-    switch (_sending_state) {
-    case SS_IDLE:
-      rig.getAutokeyTextCh(_sending_ch_idx, ch);
-      _sending_ch_idx ++;
+    if (get_morse) {
+      if (v >= 'a' && v <= 'z') v = v - 'a' + 'A';
 
-      if (ch == 0) {
-        // end of the text
-        _sending_ch_idx = 0;
-        setAutoTextMode(false);
+      if (v >= '!' && v <= 'Z') {
+        idx = v - '!';
+      } else if (v == '_') {
+        idx = under_score_index;
+      }
+
+      if (idx != -1) {
+        memcpy_P(&result, &morse_table[idx], 1);
       } else {
+        result = 0x80;
+      }
+    } else {
+      result = 0;
+      uint8_t m;
+      for (uint8_t i = 0; i < sizeof(morse_table); i ++) {
+        memcpy_P(&m, &morse_table[i], 1);
 
-        if (ch >= 'a' && ch <= 'z') ch = ch - 'a' + 'A';
+        if (m == v) {
+          if (idx == under_score_index) {
+            result = '_';
+          } else {
+            result = i + '!';
+          }
 
-        m_idx = -1;
-        if (ch >= '!' && ch <= 'Z') {
-          m_idx = ch - '!';
-        } else if (ch == '_') {
-          m_idx = under_score_index;
-        }
-
-        if (m_idx != -1) {
-          memcpy_P(&_sending_m, &morse_table[m_idx], 1);
-        }
-
-        if (m_idx == -1 || _sending_m == 0x80) {
-          // unknown char, or space
-          _element_at = millis();
-          _sending_state = SS_IWG;
-        } else {
-          _element_type = ET_IDLE;
-          _sending_state = SS_CH;
+          break;
         }
       }
-      break;
-    case SS_CH:
-      if (_sending_m == 0x80) {
-        // finished char!
-        _element_at = millis();
-        _sending_state = SS_ICG;
-      } else {
-        in_ready_state(_sending_m & 0x80 ? PADDLE_DASH : PADDLE_DOT);
-
-        if (_element_type == ET_IDLE) {
-          // finished dot/dash
-          _sending_m <<= 1;
-        }
-      }
-      break;
-    case SS_ICG:
-      if (millis() - _element_at >= Device::getCwSpeed() * 2) {
-        _sending_state = SS_IDLE;
-      }
-      break;
-    case SS_IWG:
-      if (millis() - _element_at >= Device::getCwSpeed() * 4) {
-        _sending_state = SS_IDLE;
-      }
-      break;
-    default:
-      break;
     }
+
+    return result;
   };
 };
 
