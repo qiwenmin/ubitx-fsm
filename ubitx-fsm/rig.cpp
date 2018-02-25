@@ -864,17 +864,21 @@ static bool serialReadString(char *buf, uint8_t len) {
 }
 
 void Rig::serialSetup() {
+  char ch;
+  char buf[64];
+
   lcd.setCursor(0, 0);
   lcd.print(F("Setup via Serial"));
   lcd.setCursor(0, 1);
   lcd.print(F("19200 8N1 NoEcho"));
 
-  for (;;) {
-    char ch;
-    char buf[64];
-    uint8_t i;
+  Serial.flush();
 
-    Serial.flush();
+  Serial.print(F("\r\nPress <ENTER> to start..."));
+  serialReadString(buf, 1);
+
+  for (;;) {
+    uint8_t i;
 
     Serial.print(F("\r\n\r\n1. Callsign: "));
     for (i = 0; i < ADDR_CALLSIGN_LEN; i ++) {
