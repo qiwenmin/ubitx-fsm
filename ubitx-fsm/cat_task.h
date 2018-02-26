@@ -26,15 +26,6 @@
 #define OKR 0xFB // OK Resp
 #define CMD(c) c
 
-inline size_t serialReadBytes(byte *c, size_t len) {
-#ifdef BOARD_generic_stm32f103c
-  return Serial.readBytes((char *)c, len);
-#else
-  return Serial.readBytes(c, len);
-#endif // BOARD_generic_stm32f103c
-};
-
-
 enum CatState {
   CAT_FRAME_BEGIN = (FSM_STATE_USERDEF + 1),
   CAT_ADDRESS,
@@ -104,7 +95,7 @@ private:
   void readFrameBegin() {
     while (Serial.available()) {
       byte c;
-      serialReadBytes(&c, 1);
+      Serial.readBytes(&c, 1);
 
       if (c != FBC) {
         // wrong byte
@@ -124,7 +115,7 @@ private:
   void readAddress() {
     while (Serial.available()) {
       byte c;
-      serialReadBytes(&c, 1);
+      Serial.readBytes(&c, 1);
 
       _buf[_buf_pos ++] = c;
 
@@ -138,7 +129,7 @@ private:
   void readDataAndEnd() {
     while (Serial.available()) {
       byte c;
-      serialReadBytes(&c, 1);
+      Serial.readBytes(&c, 1);
 
       _buf[_buf_pos ++] = c;
 
