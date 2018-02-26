@@ -176,6 +176,16 @@ uBitx的操作界面比较简洁：唯一的输出设备是一个16x2的字符LC
 * SYS CONF：进入系统菜单，选择此功能会提示Yes或No，选择Yes进入。
 * Exit Menu：退出菜单，回到主界面。
 
+在普通菜单模式下，还能用自动键发莫尔斯码来执行快捷操作。这些操作包括：
+
+* E或T：开始自动发报。
+* S和N：临时调整发报速度，S为慢速，N为普通速度。慢速发报所对应的WPM可以在“Setup via Serial”模式中设置。
+* X：执行V/M菜单功能。
+* C、R、L和U：切换工作模式。C为CW、R为CWR、L为LSB、U为USB。
+* M：切换到频道（MEM）模式。
+* V：切换到VFO模式。
+* 0到9：切换到对应的频道（CH-00到CH-09）。
+
 ### 系统菜单
 
 在普通菜单中选择“SYS CONF”后，进入系统菜单。菜单功能包括：
@@ -201,35 +211,51 @@ uBitx的操作界面比较简洁：唯一的输出设备是一个16x2的字符LC
 ```
 1. Callsign: 
 2. Autokey Text: 
+3. CW key slow WPM: 15
 
-Power off the uBitx when done. Choose [1, 2]:
+Power off the uBitx when done. Choose [1, 2, 3]:
 ```
 
-按1或2，根据提示分别设置呼号和自动发报的文本。输入时可用退格键删除错误的字符，最后按回车键完成输入。如果输入过程中需要取消，可以按Ctrl+C键。
+如果终端中没有出现提示信息，可以按一下回车键。
+
+按相应功能的数字编号，根据提示完成配置。输入时可用退格键删除错误的字符，最后按回车键完成输入。如果输入过程中需要取消，可以按Ctrl+C键。
 
 设置完毕之后，关闭并重开电台的电源，即可让设置生效。
 
 下面是一个设置过程的例子：
 
 ```
+Press <ENTER> to start...
+
 1. Callsign: 
 2. Autokey Text: 
+3. CW key slow WPM: 15
 
-Power off the uBitx when done. Choose [1, 2]:1
+Power off the uBitx when done. Choose [1, 2, 3]:1
 
 Input Callsign: BG1REN
 
 1. Callsign: BG1REN
 2. Autokey Text: 
+3. CW key slow WPM: 15
 
-Power off the uBitx when done. Choose [1, 2]: 2
+Power off the uBitx when done. Choose [1, 2, 3]: 2
 
 Input Autokey text: CQ CQ DE BG1REN BG1REN PSE K
 
 1. Callsign: BG1REN
 2. Autokey Text: CQ CQ DE BG1REN BG1REN PSE K
+3. CW key slow WPM: 15
 
-Power off the uBitx when done. Choose [1, 2]: 
+Power off the uBitx when done. Choose [1, 2, 3]: 3
+
+Input CW key slow WPM (5-60): 12
+
+1. Callsign: BG1REN
+2. Autokey Text: CQ CQ DE BG1REN BG1REN PSE K
+3. CW key slow WPM: 12
+
+Power off the uBitx when done. Choose [1, 2, 3]: 
 ```
 
 ## 电台软件连接电台
