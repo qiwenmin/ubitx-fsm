@@ -597,12 +597,12 @@ void UiTask::update_display(void */*sender*/) {
     displayTask.clear();
     rig.getCallsign(callsign);
     if (callsign[0] != 0) {
-      displayTask.print0(F("uBitx FMS v." FW_VERSION));
+      displayTask.print0(F("uBitx FSM v." FW_VERSION));
       uint8_t x = (16 - strlen(callsign)) / 2;
       displayTask.clear1();
       displayTask.print(x, 1, callsign);
     } else {
-      displayTask.print0(F("=[ uBitx  FMS ]="));
+      displayTask.print0(F("=[ uBitx  FSM ]="));
       displayTask.print1(F("     v." FW_VERSION "     "));
     }
     break;
@@ -744,4 +744,3 @@ void UiTask::format_mode(char *output, uint8_t mode) {
     break;
   }
 }
-
